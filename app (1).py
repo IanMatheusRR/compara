@@ -54,26 +54,21 @@ def load_excecao_planilha():
 
 def gerar_arquivo_excel(df):
     output = BytesIO()
+    # Escreve o DataFrame sem cabeçalho (pois iremos reescrevê-lo com formatação)
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Resultado')
-        
-        # Acessar o objeto da planilha e o workbook
+        df.to_excel(writer, index=False, sheet_name='Resultado', header=False)
         workbook  = writer.book
         worksheet = writer.sheets['Resultado']
 
-        # Adicionar filtro para todas as colunas
+        # Adicionar filtro para as colunas existentes (baseado na quantidade de colunas do df)
         worksheet.autofilter(0, 0, 0, len(df.columns)-1)
         
-        # Ajustar a largura das colunas automaticamente com base no conteúdo
+        # Ajustar a largura de cada coluna baseada no conteúdo
         for i, col in enumerate(df.columns):
             max_len = df[col].astype(str).map(len).max()
             worksheet.set_column(i, i, max_len + 2)
-
-        # Formato para o corpo da planilha: centralizado
-        cell_format = workbook.add_format({'align': 'center', 'valign': 'vcenter'})
-        worksheet.set_column(0, len(df.columns)-1, None, cell_format)
         
-        # Formato para o cabeçalho: fundo #003a63, texto branco e centralizado
+        # Definir os formatos
         header_format = workbook.add_format({
             'align': 'center',
             'valign': 'vcenter',
@@ -81,8 +76,16 @@ def gerar_arquivo_excel(df):
             'font_color': '#ffffff',
             'bold': True
         })
-        # Aplicar o formato no cabeçalho (primeira linha)
-        worksheet.set_row(0, None, header_format)
+        cell_format = workbook.add_format({'align': 'center', 'valign': 'vcenter'})
+
+        # Reescrever o cabeçalho com o formato do cabeçalho
+        for col_num, header in enumerate(df.columns):
+            worksheet.write(0, col_num, header, header_format)
+        
+        # Reescrever as células de dados (começando na linha 1)
+        for row_num in range(1, len(df) + 1):
+            for col_num, value in enumerate(df.iloc[row_num - 1]):
+                worksheet.write(row_num, col_num, value, cell_format)
 
         writer.close()
     return output.getvalue()
@@ -121,15 +124,15 @@ def main():
         new_excecao_df.to_excel(CAMINHO_EXCECAO, index=False)
         st.sidebar.success("✅ Planilha de exceção atualizada com sucesso!")
 
-    # Carregar planilhas a partir dos caminhos configurados manualmente
+    # Carregar planilhas
     base_df = load_base_planilha()
     if base_df is None:
-        st.error("⚠️ Nenhuma planilha base encontrada no caminho fornecido! Verifique o caminho e tente novamente.")
+        st.error("⚠️ Nenhuma planilha base encontrada! Verifique o caminho e tente novamente.")
         return
 
     excecao_df = load_excecao_planilha()
     if excecao_df is None:
-        st.error("⚠️ Nenhuma planilha de exceção encontrada no caminho fornecido! Verifique o caminho e tente novamente.")
+        st.error("⚠️ Nenhuma planilha de exceção encontrada! Verifique o caminho e tente novamente.")
         return
 
     st.subheader("📂 Carregar Planilha para Comparação")
@@ -137,24 +140,23 @@ def main():
     if new_file:
         try:
             new_df = pd.read_excel(new_file)
-            # Filtrar e processar a planilha
             new_df = filtrar_excecoes(new_df, excecao_df)
             new_df = new_df.dropna(subset=['Material'])
             
-            # Agrupar os dados por Empresa, Elemento PEP e Material, somando os valores
+            # Agrupar dados por Empresa, Elemento PEP e Material
             df_agrupado = new_df.groupby(['Empresa', 'Elemento PEP', 'Material'], as_index=False).agg({
                 'Qtd.total entrada': 'sum',
                 'Valor/moeda objeto': 'sum'
             })
             
-            # Calcular o PU (preço unitário) e arredondar para 2 casas decimais
+            # Calcular o PU e arredondar para 2 casas decimais
             df_agrupado['PU'] = (df_agrupado['Valor/moeda objeto'] / df_agrupado['Qtd.total entrada']).round(2)
             
         except Exception as e:
             st.error(f"Ocorreu um erro ao processar a planilha: {e}")
             return
         
-        # Merge para adicionar DESC_MATERIAL, MAX_PU e MIN_PU da planilha base (associando pela coluna Material)
+        # Merge com a planilha base para trazer DESC_MATERIAL, MAX_PU e MIN_PU
         df_agrupado = pd.merge(
             df_agrupado,
             base_df[['Equipamento', 'DESC_MATERIAL', 'MAX_PU', 'MIN_PU']],
@@ -169,13 +171,13 @@ def main():
             (df_agrupado['Qtd.total entrada'] != 0) & (df_agrupado['Valor/moeda objeto'] != 0)
         ]
         
-        # Criar a coluna Resultado comparando o PU com MIN_PU e MAX_PU da planilha base
+        # Criar a coluna Resultado comparando PU com MIN_PU e MAX_PU
         df_agrupado['Resultado'] = df_agrupado.apply(
             lambda row: "✅ OK" if pd.notnull(row['MIN_PU']) and pd.notnull(row['MAX_PU']) and row['MIN_PU'] <= row['PU'] <= row['MAX_PU'] 
             else ("❌ Indevido" if pd.notnull(row['MIN_PU']) and pd.notnull(row['MAX_PU']) else "⚠️ Equipamento não encontrado"), axis=1
         )
         
-        # Reordenar as colunas conforme solicitado
+        # Reordenar as colunas
         final_columns = [
             "Empresa", "Elemento PEP", "Material", "DESC_MATERIAL", "Qtd.total entrada",
             "Valor/moeda objeto", "MAX_PU", "MIN_PU", "PU", "Resultado"
@@ -196,6 +198,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-
