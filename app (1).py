@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 from io import BytesIO
 
@@ -13,14 +14,58 @@ st.set_page_config(
 if "show_info" not in st.session_state:
     st.session_state.show_info = False
 
-# Botão de dúvidas que alterna a exibição da mensagem
-if st.button("❓", key="toggle_info_button"):
+# Componente personalizado para o botão de dúvidas com ícone
+custom_button_html = """
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    #custom-doubt-button {
+      background-color: #fff;
+      border: 2px solid #003a63;
+      border-radius: 8px;
+      padding: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 150px;
+      height: 60px;
+    }
+    #custom-doubt-button img {
+      height: 40px;
+      width: 40px;
+      margin-right: 10px;
+    }
+    #custom-doubt-button span {
+      font-size: 16px;
+      color: #003a63;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div id="custom-doubt-button" onclick="handleClick()">
+    <img src="https://via.placeholder.com/40?text=%3F" alt="Ícone">
+    <span>Dúvidas</span>
+  </div>
+  <script>
+    function handleClick() {
+      Streamlit.setComponentValue(true);
+    }
+    Streamlit.setFrameHeight(document.documentElement.scrollHeight);
+  </script>
+</body>
+</html>
+"""
+
+button_clicked = components.html(custom_button_html, height=100)
+if button_clicked:
     st.session_state.show_info = not st.session_state.show_info
 
 # Exibe a mensagem de instrução se show_info for True
 if st.session_state.show_info:
     try:
-        # Tenta usar st.modal se disponível
         with st.modal("Instruções de Uso"):
             st.write(
                 "Para otimizar o uso das funcionalidades, por favor, carregue o arquivo CJI3 "
@@ -36,6 +81,9 @@ if st.session_state.show_info:
             "localizada na última linha do arquivo extraído da CJI3."
         )
 
+# ----------------------------------------------------------
+# Restante do código do aplicativo
+# ----------------------------------------------------------
 # Caminho das planilhas base e exceção (definidos manualmente no código)
 CAMINHO_BASE = "planilha_base.xlsx"
 CAMINHO_EXCECAO = "planilha_excecao.XLSX"
@@ -80,11 +128,6 @@ def load_excecao_planilha():
         return None
 
 def safe_write(worksheet, row, col, value, cell_format):
-    """
-    Escreve o valor na célula utilizando o método adequado.
-    Se for numérico, utiliza write_number; caso contrário, write_string.
-    Se o valor for NaN, escreve uma string vazia.
-    """
     if pd.isna(value):
         worksheet.write(row, col, "", cell_format)
     elif isinstance(value, (int, float)):
@@ -97,21 +140,14 @@ def safe_write(worksheet, row, col, value, cell_format):
 
 def gerar_arquivo_excel(df):
     output = BytesIO()
-    # Escreve o DataFrame sem cabeçalho (pois iremos reescrevê-lo com formatação)
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df.to_excel(writer, index=False, sheet_name='Resultado', header=False)
         workbook  = writer.book
         worksheet = writer.sheets['Resultado']
-
-        # Adicionar filtro para as colunas existentes
         worksheet.autofilter(0, 0, 0, len(df.columns)-1)
-        
-        # Ajustar a largura de cada coluna baseada no conteúdo
         for i, col in enumerate(df.columns):
             max_len = df[col].astype(str).map(len).max()
             worksheet.set_column(i, i, max_len + 2)
-        
-        # Definir os formatos
         header_format = workbook.add_format({
             'align': 'center',
             'valign': 'vcenter',
@@ -120,16 +156,11 @@ def gerar_arquivo_excel(df):
             'bold': True
         })
         cell_format = workbook.add_format({'align': 'center', 'valign': 'vcenter'})
-
-        # Reescrever o cabeçalho com o formato do cabeçalho
         for col_num, header in enumerate(df.columns):
             worksheet.write(0, col_num, header, header_format)
-        
-        # Reescrever as células de dados (a partir da linha 1)
         for row_num in range(1, len(df) + 1):
             for col_num, value in enumerate(df.iloc[row_num - 1]):
                 safe_write(worksheet, row_num, col_num, value, cell_format)
-
         writer.close()
     return output.getvalue()
 
@@ -140,45 +171,39 @@ def filtrar_excecoes(comparacao_df, excecao_df):
     return df_filtrado
 
 def main():
-    # Exibir logo
     try:
         st.sidebar.image("GRUPO-EQUATORIAL-ENERGIA-LOGO_PADRAO_COR.png", width=400)
     except Exception:
         st.sidebar.info("🔹 Adicione um logo no diretório do aplicativo para exibição.")
-
     st.sidebar.title("📊 Menu")
     st.sidebar.info("Gerencie e valide os preços de equipamentos com base na planilha de referência.")
     
     st.title("Sistema de Controle e Comparação de Preços")
     st.write("Este sistema verifica se os preços fornecidos estão dentro dos valores permitidos pela base.")
     
-    # Atualizar a planilha base
     st.sidebar.subheader("📂 Atualizar Planilha Base")
     new_base_file = st.sidebar.file_uploader("Carregar Nova Planilha Base (Excel)", type=["xlsx"])
     if new_base_file:
         new_base_df = pd.read_excel(new_base_file)
         new_base_df.to_excel(CAMINHO_BASE, index=False)
         st.sidebar.success("✅ Planilha base atualizada com sucesso!")
-
-    # Atualizar a planilha de exceção
+    
     st.sidebar.subheader("📂 Atualizar Planilha de Exceção")
     new_excecao_file = st.sidebar.file_uploader("Carregar Nova Planilha de Exceção (Excel)", type=["xlsx"])
     if new_excecao_file:
         new_excecao_df = pd.read_excel(new_excecao_file)
         new_excecao_df.to_excel(CAMINHO_EXCECAO, index=False)
         st.sidebar.success("✅ Planilha de exceção atualizada com sucesso!")
-
-    # Carregar planilhas
+    
     base_df = load_base_planilha()
     if base_df is None:
         st.error("⚠️ Nenhuma planilha base encontrada! Verifique o caminho e tente novamente.")
         return
-
     excecao_df = load_excecao_planilha()
     if excecao_df is None:
         st.error("⚠️ Nenhuma planilha de exceção encontrada! Verifique o caminho e tente novamente.")
         return
-
+    
     st.subheader("📂 Carregar Planilha para Comparação")
     new_file = st.file_uploader("Escolha um arquivo Excel para comparação", type=["xlsx"])
     if new_file:
@@ -186,21 +211,15 @@ def main():
             new_df = pd.read_excel(new_file)
             new_df = filtrar_excecoes(new_df, excecao_df)
             new_df = new_df.dropna(subset=['Material'])
-            
-            # Agrupar dados por Empresa, Elemento PEP e Material
             df_agrupado = new_df.groupby(['Empresa', 'Elemento PEP', 'Material'], as_index=False).agg({
                 'Qtd.total entrada': 'sum',
                 'Valor/moeda objeto': 'sum'
             })
-            
-            # Calcular o PU e arredondar para 2 casas decimais
             df_agrupado['PU'] = (df_agrupado['Valor/moeda objeto'] / df_agrupado['Qtd.total entrada']).round(2)
-            
         except Exception as e:
             st.error(f"Ocorreu um erro ao processar a planilha: {e}")
             return
         
-        # Merge com a planilha base para obter DESC_MATERIAL, MAX_PU e MIN_PU
         df_agrupado = pd.merge(
             df_agrupado,
             base_df[['Equipamento', 'DESC_MATERIAL', 'MAX_PU', 'MIN_PU']],
@@ -209,28 +228,21 @@ def main():
             how='left'
         )
         df_agrupado.drop(columns=['Equipamento'], inplace=True)
-        
-        # Excluir linhas onde "Qtd.total entrada" ou "Valor/moeda objeto" sejam zero
         df_agrupado = df_agrupado[
             (df_agrupado['Qtd.total entrada'] != 0) & (df_agrupado['Valor/moeda objeto'] != 0)
         ]
-        
-        # Criar a coluna Resultado comparando PU com MIN_PU e MAX_PU
         df_agrupado['Resultado'] = df_agrupado.apply(
             lambda row: "✅ OK" if pd.notnull(row['MIN_PU']) and pd.notnull(row['MAX_PU']) and row['MIN_PU'] <= row['PU'] <= row['MAX_PU'] 
             else ("❌ Indevido" if pd.notnull(row['MIN_PU']) and pd.notnull(row['MAX_PU']) else "⚠️ Equipamento não encontrado"), axis=1
         )
-        
-        # Reordenar as colunas conforme solicitado
         final_columns = [
             "Empresa", "Elemento PEP", "Material", "DESC_MATERIAL", "Qtd.total entrada",
             "Valor/moeda objeto", "MAX_PU", "MIN_PU", "PU", "Resultado"
         ]
         df_agrupado = df_agrupado[final_columns]
-        
         processed_df = df_agrupado.copy()
         processed_file = gerar_arquivo_excel(processed_df)
-
+        
         st.subheader("📊 Resumo dos Resultados Agrupados")
         st.dataframe(processed_df)
         st.download_button(
@@ -242,6 +254,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
