@@ -186,5 +186,23 @@ def main():
         # - Coloca "PU" imediatamente à esquerda de "Resultado"
         final_columns = [
             "Empresa", "Elemento PEP", "Material", "DESC_MATERIAL", "Qtd.total entrada",
-            "Valor
+            "Valor/moeda objeto", "MAX_PU", "MIN_PU", "PU", "Resultado"
+        ]
+        df_agrupado = df_agrupado[final_columns]
+
+        processed_df = df_agrupado.copy()
+        processed_file = gerar_arquivo_excel(processed_df)
+
+        st.subheader("📊 Resumo dos Resultados Agrupados")
+        st.dataframe(processed_df)
+        st.download_button(
+            label="📥 Baixar Planilha Processada",
+            data=processed_file,
+            file_name="planilha_processada.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+if __name__ == '__main__':
+    main()
+
 
