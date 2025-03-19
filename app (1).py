@@ -85,7 +85,7 @@ def filtrar_excecoes(comparacao_df, excecao_df):
 def main():
     # Exibir logo
     try:
-        st.sidebar.image("/content/GRUPO-EQUATORIAL-ENERGIA-LOGO_PADRAO_COR.png", width=400)
+        st.sidebar.image("https://github.com/IanMatheusRR/compara/blob/main/GRUPO-EQUATORIAL-ENERGIA-LOGO_PADRAO_COR.png", width=400)
     except Exception:
         st.sidebar.info("🔹 Adicione um logo no diretório do aplicativo para exibição.")
 
