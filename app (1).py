@@ -5,7 +5,7 @@ from io import BytesIO
 # Configuração da página
 st.set_page_config(
     page_title="Sistema de Controle e Comparação de Preços",
-    page_icon="/logo-eqtl-app-teste2.png",
+    page_icon="logo-eqtl-app-teste2.png",
     layout="wide"
 )
 
@@ -85,7 +85,7 @@ def filtrar_excecoes(comparacao_df, excecao_df):
 def main():
     # Exibir logo
     try:
-        st.sidebar.image("/GRUPO-EQUATORIAL-ENERGIA-LOGO_PADRAO_COR.png", width=400)
+        st.sidebar.image("GRUPO-EQUATORIAL-ENERGIA-LOGO_PADRAO_COR.png", width=400)
     except Exception:
         st.sidebar.info("🔹 Adicione um logo no diretório do aplicativo para exibição.")
 
