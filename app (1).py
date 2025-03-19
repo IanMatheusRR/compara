@@ -67,6 +67,19 @@ def gerar_arquivo_excel(df):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df.to_excel(writer, index=False, sheet_name='Resultado')
+        
+        # Acessar o objeto da planilha
+        workbook  = writer.book
+        worksheet = writer.sheets['Resultado']
+
+        # Adicionar filtro para todas as colunas
+        worksheet.autofilter(0, 0, 0, len(df.columns)-1)
+        
+        # Ajustar a largura das colunas automaticamente com base no conteúdo
+        for i, col in enumerate(df.columns):
+            max_len = df[col].astype(str).map(len).max()
+            worksheet.set_column(i, i, max_len + 2)  # Adicionar um pequeno espaçamento para a largura da coluna
+
         writer.close()
     return output.getvalue()
 
