@@ -38,9 +38,7 @@ COLUNAS_PROCESSADAS = [
 @st.cache_data
 def load_base_planilha():
     try:
-        st.write("Tentando carregar a planilha base...")
         df = pd.read_excel(CAMINHO_BASE)
-        st.write("Planilha base carregada com sucesso.")
         return df
     except Exception as e:
         st.error(f"Erro ao tentar carregar a planilha base: {e}")
@@ -51,6 +49,7 @@ def load_excecao_planilha():
     try:
         return pd.read_excel(CAMINHO_EXCECAO)
     except Exception:
+        st.error(f"Erro ao tentar carregar a planilha de exceção: {e}")
         return None
 
 def verificar_preco(row, base_df):
