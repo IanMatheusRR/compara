@@ -12,6 +12,7 @@ st.set_page_config(
 # Caminho das planilhas base e exceção (definidos manualmente no código)
 CAMINHO_BASE = "planilha_base.xlsx"
 CAMINHO_EXCECAO = "planilha_excecao.xlsx"
+st.write(f"Caminho da planilha base: {CAMINHO_BASE}")
 
 # Lista de colunas esperadas na planilha base
 COLUNAS_ESPERADAS_BASE = ["EMPRESA", "Equipamento", "DESC_MATERIAL", "MAX_PU", "MIN_PU"]
