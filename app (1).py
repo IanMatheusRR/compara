@@ -9,6 +9,10 @@ st.set_page_config(
     layout="wide"
 )
 
+# Caminho das planilhas base e exceção (definidos manualmente no código)
+CAMINHO_BASE = "planilha_base.xlsx"
+CAMINHO_EXCECAO = "planilha_excecao.xlsx"
+
 # Lista de colunas esperadas na planilha base
 COLUNAS_ESPERADAS_BASE = ["EMPRESA", "Equipamento", "DESC_MATERIAL", "MAX_PU", "MIN_PU"]
 
@@ -26,9 +30,6 @@ COLUNAS_ESPERADAS_COMPARACAO = [
 ]
 
 # Colunas que devem estar na planilha processada
-# Ordem final:
-#  - Após as colunas de identificação, é inserida a coluna "DESC_MATERIAL" entre "Material" e "Qtd.total entrada"
-#  - As colunas "MAX_PU" e "MIN_PU" virão antes de "PU" e "Resultado", com "PU" imediatamente à esquerda de "Resultado"
 COLUNAS_PROCESSADAS = [
     "Empresa", "Elemento PEP", "Material", "DESC_MATERIAL", "Qtd.total entrada",
     "Valor/moeda objeto", "MAX_PU", "MIN_PU", "PU", "Resultado"
@@ -37,14 +38,14 @@ COLUNAS_PROCESSADAS = [
 @st.cache_data
 def load_base_planilha():
     try:
-        return pd.read_excel("planilha_base.xlsx")
+        return pd.read_excel(CAMINHO_BASE)
     except Exception:
         return None
 
 @st.cache_data
 def load_excecao_planilha():
     try:
-        return pd.read_excel("planilha_excecao.xlsx")
+        return pd.read_excel(CAMINHO_EXCECAO)
     except Exception:
         return None
 
@@ -94,30 +95,34 @@ def main():
     st.title("Sistema de Controle e Comparação de Preços")
     st.write("Este sistema verifica se os preços fornecidos estão dentro dos valores permitidos pela base.")
 
-    # Upload da nova planilha base
+    # Opção de atualizar as planilhas base e exceção
+    st.sidebar.subheader("📂 Atualizar Planilha Base e Exceção")
+    
+    # Atualizar a planilha base
     st.sidebar.subheader("📂 Atualizar Planilha Base")
     new_base_file = st.sidebar.file_uploader("Carregar Nova Planilha Base (Excel)", type=["xlsx"])
     if new_base_file:
         new_base_df = pd.read_excel(new_base_file)
-        new_base_df.to_excel("planilha_base.xlsx", index=False)
+        new_base_df.to_excel(CAMINHO_BASE, index=False)
         st.sidebar.success("✅ Planilha base atualizada com sucesso!")
 
-    # Upload da nova planilha de exceção
+    # Atualizar a planilha de exceção
     st.sidebar.subheader("📂 Atualizar Planilha de Exceção")
     new_excecao_file = st.sidebar.file_uploader("Carregar Nova Planilha de Exceção (Excel)", type=["xlsx"])
     if new_excecao_file:
         new_excecao_df = pd.read_excel(new_excecao_file)
-        new_excecao_df.to_excel("planilha_excecao.xlsx", index=False)
+        new_excecao_df.to_excel(CAMINHO_EXCECAO, index=False)
         st.sidebar.success("✅ Planilha de exceção atualizada com sucesso!")
 
+    # Carregar planilhas a partir dos caminhos configurados manualmente
     base_df = load_base_planilha()
     if base_df is None:
-        st.error("⚠️ Nenhuma planilha base encontrada! Por favor, faça o upload na barra lateral.")
+        st.error("⚠️ Nenhuma planilha base encontrada no caminho fornecido! Verifique o caminho e tente novamente.")
         return
 
     excecao_df = load_excecao_planilha()
     if excecao_df is None:
-        st.error("⚠️ Nenhuma planilha de exceção encontrada! Por favor, faça o upload na barra lateral.")
+        st.error("⚠️ Nenhuma planilha de exceção encontrada no caminho fornecido! Verifique o caminho e tente novamente.")
         return
 
     st.subheader("📂 Carregar Planilha para Comparação")
