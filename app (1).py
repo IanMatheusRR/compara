@@ -3,6 +3,17 @@ import pandas as pd
 from io import BytesIO
 
 # Configuração da página
+# Botão com ícone de interrogação logo acima do título
+if st.button("❓", key="info_button"):
+    # Exibe um modal com as instruções
+    with st.modal("Instruções de Uso"):
+        st.write(
+            "Para otimizar o uso das funcionalidades, por favor, carregue o arquivo CJI3 "
+            "extraído do SAP com o layout BRP_RAW utilizando o campo 'Drag and drop file here'. "
+            "Certifique-se de que o formato das colunas permaneça inalterado e remova a última linha "
+            "destacada (em amarelo) do arquivo extraído da CJI3."
+        )
+
 st.set_page_config(
     page_title="Sistema de Controle e Comparação de Preços",
     page_icon="logo-eqtl-app-teste2.png",
@@ -54,8 +65,8 @@ def load_excecao_planilha():
 
 def safe_write(worksheet, row, col, value, cell_format):
     """
-    Escreve o valor na célula utilizando o método adequado.
-    Se for numérico, utiliza write_number; caso contrário, write_string.
+    Escreve o valor na célula usando o método apropriado.
+    Se for numérico, usa write_number, caso contrário, write_string.
     Se o valor for NaN, escreve uma string vazia.
     """
     if pd.isna(value):
@@ -76,7 +87,7 @@ def gerar_arquivo_excel(df):
         workbook  = writer.book
         worksheet = writer.sheets['Resultado']
 
-        # Adicionar filtro para as colunas existentes
+        # Adicionar filtro para as colunas existentes (baseado na quantidade de colunas do df)
         worksheet.autofilter(0, 0, 0, len(df.columns)-1)
         
         # Ajustar a largura de cada coluna baseada no conteúdo
@@ -98,7 +109,7 @@ def gerar_arquivo_excel(df):
         for col_num, header in enumerate(df.columns):
             worksheet.write(0, col_num, header, header_format)
         
-        # Reescrever as células de dados (a partir da linha 1)
+        # Reescrever as células de dados (começando na linha 1)
         for row_num in range(1, len(df) + 1):
             for col_num, value in enumerate(df.iloc[row_num - 1]):
                 safe_write(worksheet, row_num, col_num, value, cell_format)
@@ -121,15 +132,6 @@ def main():
 
     st.sidebar.title("📊 Menu")
     st.sidebar.info("Gerencie e valide os preços de equipamentos com base na planilha de referência.")
-    
-    # Campo interativo com ícone de interrogação e mensagem de dica
-    tooltip_html = """
-    <div style="display: inline-block; margin-top: 10px; padding: 4px; border: 1px solid #ccc; border-radius: 4px; width: 24px; height: 24px; text-align: center; vertical-align: middle; cursor: pointer;" title="Para otimizar o uso das funcionalidades, por favor, carregue o arquivo CJI3 extraído do SAP com o layout BRP_RAW, utilizando o campo 'Drag and drop file here'. Assegure-se de que o formato das colunas permaneça inalterado, por favor exclua a linha amarela que fica na última linha do arquivo extraída da CJI3.">
-      ?
-    </div>
-    """
-    st.sidebar.markdown(tooltip_html, unsafe_allow_html=True)
-    
     st.title("Sistema de Controle e Comparação de Preços")
     st.write("Este sistema verifica se os preços fornecidos estão dentro dos valores permitidos pela base.")
     
@@ -181,7 +183,7 @@ def main():
             st.error(f"Ocorreu um erro ao processar a planilha: {e}")
             return
         
-        # Merge com a planilha base para obter DESC_MATERIAL, MAX_PU e MIN_PU
+        # Merge com a planilha base para trazer DESC_MATERIAL, MAX_PU e MIN_PU
         df_agrupado = pd.merge(
             df_agrupado,
             base_df[['Equipamento', 'DESC_MATERIAL', 'MAX_PU', 'MIN_PU']],
@@ -202,7 +204,7 @@ def main():
             else ("❌ Indevido" if pd.notnull(row['MIN_PU']) and pd.notnull(row['MAX_PU']) else "⚠️ Equipamento não encontrado"), axis=1
         )
         
-        # Reordenar as colunas conforme solicitado
+        # Reordenar as colunas
         final_columns = [
             "Empresa", "Elemento PEP", "Material", "DESC_MATERIAL", "Qtd.total entrada",
             "Valor/moeda objeto", "MAX_PU", "MIN_PU", "PU", "Resultado"
@@ -223,3 +225,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
