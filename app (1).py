@@ -126,7 +126,7 @@ def main():
     new_file = st.file_uploader("Escolha um arquivo Excel para comparação", type=["xlsx"])
     if new_file:
         try:
-            new_df = pd.read_excel(new_file)
+            new_df = pd.read_excel(new_file)      
             # Filtrar e processar a planilha
             new_df = filtrar_excecoes(new_df, excecao_df)
             new_df = new_df.dropna(subset=['Material'])
@@ -153,6 +153,11 @@ def main():
             how='left'
         )
         df_agrupado.drop(columns=['Equipamento'], inplace=True)
+        
+        # Excluir linhas onde "Qtd.total entrada" ou "Valor/moeda objeto" sejam zero
+        df_agrupado = df_agrupado[
+            (df_agrupado['Qtd.total entrada'] != 0) & (df_agrupado['Valor/moeda objeto'] != 0)
+        ]
         
         # Criar a coluna Resultado comparando o PU com MIN_PU e MAX_PU da planilha base
         df_agrupado['Resultado'] = df_agrupado.apply(
@@ -181,4 +186,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
