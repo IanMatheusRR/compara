@@ -46,7 +46,7 @@ custom_button_html = """
 </head>
 <body>
   <div id="custom-doubt-button" onclick="handleClick()">
-    <img src="https://via.placeholder.com/40?text=%3F" alt="Ícone">
+    <img src="bater-papo.png" alt="Ícone">
     <span>Dúvidas</span>
   </div>
   <script>
