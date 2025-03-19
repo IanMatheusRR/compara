@@ -94,9 +94,6 @@ def main():
     st.sidebar.info("Gerencie e valide os preços de equipamentos com base na planilha de referência.")
     st.title("Sistema de Controle e Comparação de Preços")
     st.write("Este sistema verifica se os preços fornecidos estão dentro dos valores permitidos pela base.")
-
-    # Opção de atualizar as planilhas base e exceção
-    st.sidebar.subheader("📂 Atualizar Planilha Base e Exceção")
     
     # Atualizar a planilha base
     st.sidebar.subheader("📂 Atualizar Planilha Base")
