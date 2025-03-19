@@ -52,9 +52,9 @@ def load_excecao_planilha():
         st.error(f"Erro ao tentar carregar a planilha de exceção: {e}")
         return None
 
-def verificar_preco(row, base_df):
+def verificar_preco(row, base_df, new_file):
     material = row['Material']
-    valor_proposto = row['Valor/moeda objeto']
+    valor_proposto = row['PU']
     base_info = base_df[base_df['Equipamento'] == material]
     if not base_info.empty:
         preco_min = base_info['MIN_PU'].iloc[0]
