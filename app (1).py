@@ -2,16 +2,25 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 
-# Configuração da página
+# DEVE SER A PRIMEIRA INSTRUÇÃO DO SCRIPT:
 st.set_page_config(
     page_title="Sistema de Controle e Comparação de Preços",
     page_icon="logo-eqtl-app-teste2.png",
     layout="wide"
 )
 
-# Agora o restante do código:
-if st.button("❓", key="info_button"):
+# Inicializa a variável de sessão para controlar a exibição da mensagem
+if "show_info" not in st.session_state:
+    st.session_state.show_info = False
+
+# Botão de dúvidas que alterna a exibição da mensagem
+if st.button("❓", key="toggle_info_button"):
+    st.session_state.show_info = not st.session_state.show_info
+
+# Exibe a mensagem de instrução se show_info for True
+if st.session_state.show_info:
     try:
+        # Tenta usar st.modal se disponível
         with st.modal("Instruções de Uso"):
             st.write(
                 "Para otimizar o uso das funcionalidades, por favor, carregue o arquivo CJI3 "
@@ -26,7 +35,7 @@ if st.button("❓", key="info_button"):
             "Certifique-se de que o formato das colunas permaneça inalterado e remova a linha amarela "
             "localizada na última linha do arquivo extraído da CJI3."
         )
-        
+
 # Caminho das planilhas base e exceção (definidos manualmente no código)
 CAMINHO_BASE = "planilha_base.xlsx"
 CAMINHO_EXCECAO = "planilha_excecao.XLSX"
@@ -140,14 +149,6 @@ def main():
     st.sidebar.title("📊 Menu")
     st.sidebar.info("Gerencie e valide os preços de equipamentos com base na planilha de referência.")
     
-    # Campo interativo com ícone de interrogação e mensagem de dica
-    tooltip_html = """
-    <div style="display: inline-block; margin-top: 10px; padding: 4px; border: 1px solid #ccc; border-radius: 4px; width: 24px; height: 24px; text-align: center; vertical-align: middle; cursor: pointer;" title="Para otimizar o uso das funcionalidades, por favor, carregue o arquivo CJI3 extraído do SAP com o layout BRP_RAW, utilizando o campo 'Drag and drop file here'. Assegure-se de que o formato das colunas permaneça inalterado, excetuando-se a exclusão da última linha do arquivo.">
-      ?
-    </div>
-    """
-    st.sidebar.markdown(tooltip_html, unsafe_allow_html=True)
-    
     st.title("Sistema de Controle e Comparação de Preços")
     st.write("Este sistema verifica se os preços fornecidos estão dentro dos valores permitidos pela base.")
     
@@ -241,6 +242,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-
