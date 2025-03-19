@@ -10,57 +10,63 @@ st.set_page_config(
     layout="wide"
 )
 
-# Inicializa a variável de sessão para controlar a exibição da mensagem
+# Inicializa variáveis de sessão para controlar o estado do botão e da mensagem
 if "show_info" not in st.session_state:
     st.session_state.show_info = False
+if "last_button_value" not in st.session_state:
+    st.session_state.last_button_value = None
 
 # Componente personalizado para o botão de dúvidas com ícone
 custom_button_html = """
-<!DOCTYPE html>
 <html>
-<head>
-  <style>
-    #custom-doubt-button {
-      background-color: #fff;
-      border: 2px solid #003a63;
-      border-radius: 8px;
-      padding: 10px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 150px;
-      height: 60px;
-    }
-    #custom-doubt-button img {
-      height: 40px;
-      width: 40px;
-      margin-right: 10px;
-    }
-    #custom-doubt-button span {
-      font-size: 16px;
-      color: #003a63;
-      font-weight: bold;
-    }
-  </style>
-</head>
-<body>
-  <div id="custom-doubt-button" onclick="handleClick()">
-    <img src="bater-papo.png" alt="Ícone">
-    <span>Dúvidas</span>
-  </div>
-  <script>
-    function handleClick() {
-      Streamlit.setComponentValue(true);
-    }
-    Streamlit.setFrameHeight(document.documentElement.scrollHeight);
-  </script>
-</body>
+  <head>
+    <style>
+      #custom-doubt-button {
+        background-color: #fff;
+        border: 2px solid #003a63;
+        border-radius: 8px;
+        padding: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 150px;
+        height: 60px;
+        cursor: pointer;
+      }
+      #custom-doubt-button img {
+        height: 40px;
+        width: 40px;
+        margin-right: 10px;
+      }
+      #custom-doubt-button span {
+        font-size: 16px;
+        color: #003a63;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="custom-doubt-button" onclick="handleClick()">
+      <img src="https://via.placeholder.com/40?text=%3F" alt="Ícone">
+      <span>Dúvidas</span>
+    </div>
+    <script>
+      function handleClick() {
+        // Retorna o timestamp atual para disparar uma mudança a cada clique
+        Streamlit.setComponentValue(new Date().getTime());
+      }
+      Streamlit.setFrameHeight(document.documentElement.scrollHeight);
+    </script>
+  </body>
 </html>
 """
 
-button_clicked = components.html(custom_button_html, height=100)
-if button_clicked:
+# Cria o componente personalizado e captura seu valor
+button_value = components.html(custom_button_html, height=120, key="custom_button")
+
+# Se o valor retornado for novo, alterna a exibição da mensagem
+if button_value and button_value != st.session_state.last_button_value:
+    st.session_state.last_button_value = button_value
     st.session_state.show_info = not st.session_state.show_info
 
 # Exibe a mensagem de instrução se show_info for True
@@ -84,6 +90,7 @@ if st.session_state.show_info:
 # ----------------------------------------------------------
 # Restante do código do aplicativo
 # ----------------------------------------------------------
+
 # Caminho das planilhas base e exceção (definidos manualmente no código)
 CAMINHO_BASE = "planilha_base.xlsx"
 CAMINHO_EXCECAO = "planilha_excecao.XLSX"
@@ -254,7 +261,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-
-
