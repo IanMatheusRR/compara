@@ -52,6 +52,22 @@ def load_excecao_planilha():
         st.error(f"Erro ao tentar carregar a planilha de exceção: {e}")
         return None
 
+def safe_write(worksheet, row, col, value, cell_format):
+    """
+    Escreve o valor na célula usando o método apropriado.
+    Se for numérico, usa write_number, caso contrário, write_string.
+    Se o valor for NaN, escreve uma string vazia.
+    """
+    if pd.isna(value):
+        worksheet.write(row, col, "", cell_format)
+    elif isinstance(value, (int, float)):
+        try:
+            worksheet.write_number(row, col, value, cell_format)
+        except TypeError:
+            worksheet.write(row, col, str(value), cell_format)
+    else:
+        worksheet.write(row, col, str(value), cell_format)
+
 def gerar_arquivo_excel(df):
     output = BytesIO()
     # Escreve o DataFrame sem cabeçalho (pois iremos reescrevê-lo com formatação)
@@ -85,7 +101,7 @@ def gerar_arquivo_excel(df):
         # Reescrever as células de dados (começando na linha 1)
         for row_num in range(1, len(df) + 1):
             for col_num, value in enumerate(df.iloc[row_num - 1]):
-                worksheet.write(row_num, col_num, value, cell_format)
+                safe_write(worksheet, row_num, col_num, value, cell_format)
 
         writer.close()
     return output.getvalue()
@@ -198,3 +214,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
