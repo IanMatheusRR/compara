@@ -128,17 +128,28 @@ def main():
     st.subheader("📂 Carregar Planilha para Comparação")
     new_file = st.file_uploader("Escolha um arquivo Excel para comparação", type=["xlsx"])
     if new_file:
-        new_df = pd.read_excel(new_file)
-        # Filtrar: remove as linhas cujo 'Material' esteja presente na coluna 'Nº de serviço'
-        new_df = filtrar_excecoes(new_df, excecao_df)
-        new_df = new_df.dropna(subset=['Material'])
-        new_df['Resultado'] = new_df.apply(lambda row: verificar_preco(row, base_df), axis=1)
+        try:
+            new_df = pd.read_excel(new_file)
+            st.write(f"Planilha de comparação carregada com {len(new_df)} linhas.")
+            # Verificar as colunas da planilha carregada
+            st.write(f"Colunas encontradas na planilha de comparação: {new_df.columns}")
+            
+            # Filtrar e processar a planilha
+            new_df = filtrar_excecoes(new_df, excecao_df)
+            new_df = new_df.dropna(subset=['Material'])
+            new_df['Resultado'] = new_df.apply(lambda row: verificar_preco(row, base_df), axis=1)
 
-        # Agrupar: soma a quantidade e o valor, mantendo o primeiro Resultado
-        df_agrupado = new_df.groupby(['Empresa', 'Elemento PEP', 'Material'], as_index=False).agg({
-            'Qtd.total entrada': 'sum',
-            'Valor/moeda objeto': 'sum',
-            'Resultado': 'first'
+            # Agrupar e processar os dados
+            df_agrupado = new_df.groupby(['Empresa', 'Elemento PEP', 'Material'], as_index=False).agg({
+                'Qtd.total entrada': 'sum',
+                'Valor/moeda objeto': 'sum',
+                'Resultado': 'first'
+            })
+            
+            # Outras operações...
+            
+        except Exception as e:
+            st.error(f"Ocorreu um erro ao processar a planilha: {e}")
         })
         # Calcular o PU
         df_agrupado['PU'] = df_agrupado['Valor/moeda objeto'] / df_agrupado['Qtd.total entrada']
