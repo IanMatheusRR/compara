@@ -13,14 +13,17 @@ st.set_page_config(
 if "show_info" not in st.session_state:
     st.session_state.show_info = False
 
-# Botão de dúvidas que alterna a exibição da mensagem
-if st.button("❓", key="toggle_info_button"):
-    st.session_state.show_info = not st.session_state.show_info
+# Cria uma linha de header com duas colunas: uma para o botão e outra para o título
+col1, col2 = st.columns([1, 8])
+with col1:
+    if st.button("❓", key="toggle_info_button"):
+        st.session_state.show_info = not st.session_state.show_info
+with col2:
+    st.title("Sistema de Controle e Comparação de Preços")
 
-# Exibe a mensagem de instrução se show_info for True
+# Alterna a exibição da mensagem de instrução
 if st.session_state.show_info:
     try:
-        # Tenta usar st.modal se disponível
         with st.modal("Instruções de Uso"):
             st.write(
                 "Para otimizar o uso das funcionalidades, por favor, carregue o arquivo CJI3 "
@@ -36,6 +39,9 @@ if st.session_state.show_info:
             "localizada na última linha do arquivo extraído da CJI3."
         )
 
+# ---------------------------------------------------------
+# Restante do código do aplicativo
+# ---------------------------------------------------------
 # Caminho das planilhas base e exceção (definidos manualmente no código)
 CAMINHO_BASE = "planilha_base.xlsx"
 CAMINHO_EXCECAO = "planilha_excecao.XLSX"
@@ -97,7 +103,6 @@ def safe_write(worksheet, row, col, value, cell_format):
 
 def gerar_arquivo_excel(df):
     output = BytesIO()
-    # Escreve o DataFrame sem cabeçalho (pois iremos reescrevê-lo com formatação)
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df.to_excel(writer, index=False, sheet_name='Resultado', header=False)
         workbook  = writer.book
@@ -140,7 +145,6 @@ def filtrar_excecoes(comparacao_df, excecao_df):
     return df_filtrado
 
 def main():
-    # Exibir logo
     try:
         st.sidebar.image("GRUPO-EQUATORIAL-ENERGIA-LOGO_PADRAO_COR.png", width=400)
     except Exception:
@@ -149,10 +153,7 @@ def main():
     st.sidebar.title("📊 Menu")
     st.sidebar.info("Gerencie e valide os preços de equipamentos com base na planilha de referência.")
     
-    st.title("Sistema de Controle e Comparação de Preços")
-    st.write("Este sistema verifica se os preços fornecidos estão dentro dos valores permitidos pela base.")
-    
-    # Atualizar a planilha base
+    # Seção para atualizar planilhas
     st.sidebar.subheader("📂 Atualizar Planilha Base")
     new_base_file = st.sidebar.file_uploader("Carregar Nova Planilha Base (Excel)", type=["xlsx"])
     if new_base_file:
@@ -160,7 +161,6 @@ def main():
         new_base_df.to_excel(CAMINHO_BASE, index=False)
         st.sidebar.success("✅ Planilha base atualizada com sucesso!")
 
-    # Atualizar a planilha de exceção
     st.sidebar.subheader("📂 Atualizar Planilha de Exceção")
     new_excecao_file = st.sidebar.file_uploader("Carregar Nova Planilha de Exceção (Excel)", type=["xlsx"])
     if new_excecao_file:
@@ -168,7 +168,6 @@ def main():
         new_excecao_df.to_excel(CAMINHO_EXCECAO, index=False)
         st.sidebar.success("✅ Planilha de exceção atualizada com sucesso!")
 
-    # Carregar planilhas
     base_df = load_base_planilha()
     if base_df is None:
         st.error("⚠️ Nenhuma planilha base encontrada! Verifique o caminho e tente novamente.")
@@ -187,20 +186,16 @@ def main():
             new_df = filtrar_excecoes(new_df, excecao_df)
             new_df = new_df.dropna(subset=['Material'])
             
-            # Agrupar dados por Empresa, Elemento PEP e Material
             df_agrupado = new_df.groupby(['Empresa', 'Elemento PEP', 'Material'], as_index=False).agg({
                 'Qtd.total entrada': 'sum',
                 'Valor/moeda objeto': 'sum'
             })
-            
-            # Calcular o PU e arredondar para 2 casas decimais
             df_agrupado['PU'] = (df_agrupado['Valor/moeda objeto'] / df_agrupado['Qtd.total entrada']).round(2)
             
         except Exception as e:
             st.error(f"Ocorreu um erro ao processar a planilha: {e}")
             return
         
-        # Merge com a planilha base para obter DESC_MATERIAL, MAX_PU e MIN_PU
         df_agrupado = pd.merge(
             df_agrupado,
             base_df[['Equipamento', 'DESC_MATERIAL', 'MAX_PU', 'MIN_PU']],
@@ -210,18 +205,15 @@ def main():
         )
         df_agrupado.drop(columns=['Equipamento'], inplace=True)
         
-        # Excluir linhas onde "Qtd.total entrada" ou "Valor/moeda objeto" sejam zero
         df_agrupado = df_agrupado[
             (df_agrupado['Qtd.total entrada'] != 0) & (df_agrupado['Valor/moeda objeto'] != 0)
         ]
         
-        # Criar a coluna Resultado comparando PU com MIN_PU e MAX_PU
         df_agrupado['Resultado'] = df_agrupado.apply(
             lambda row: "✅ OK" if pd.notnull(row['MIN_PU']) and pd.notnull(row['MAX_PU']) and row['MIN_PU'] <= row['PU'] <= row['MAX_PU'] 
             else ("❌ Indevido" if pd.notnull(row['MIN_PU']) and pd.notnull(row['MAX_PU']) else "⚠️ Equipamento não encontrado"), axis=1
         )
         
-        # Reordenar as colunas conforme solicitado
         final_columns = [
             "Empresa", "Elemento PEP", "Material", "DESC_MATERIAL", "Qtd.total entrada",
             "Valor/moeda objeto", "MAX_PU", "MIN_PU", "PU", "Resultado"
@@ -242,3 +234,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
