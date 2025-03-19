@@ -150,7 +150,7 @@ def main():
             
         except Exception as e:
             st.error(f"Ocorreu um erro ao processar a planilha: {e}")
-        })
+            
         # Calcular o PU
         df_agrupado['PU'] = df_agrupado['Valor/moeda objeto'] / df_agrupado['Qtd.total entrada']
 
