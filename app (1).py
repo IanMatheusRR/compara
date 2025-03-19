@@ -2,18 +2,14 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 
-# Configuração da página
-# DEVE SER A PRIMEIRA CHAMADA DO SCRIPT!
 st.set_page_config(
     page_title="Sistema de Controle e Comparação de Preços",
-    page_icon="❓",
+    page_icon="logo-eqtl-app-teste2.png",
     layout="wide"
 )
-
-# Botão com ícone de interrogação posicionado acima do título.
+# Agora o restante do código:
 if st.button("❓", key="info_button"):
     try:
-        # Utiliza o recurso modal (disponível em versões recentes do Streamlit).
         with st.modal("Instruções de Uso"):
             st.write(
                 "Para otimizar o uso das funcionalidades, por favor, carregue o arquivo CJI3 "
@@ -21,20 +17,13 @@ if st.button("❓", key="info_button"):
                 "Certifique-se de que o formato das colunas permaneça inalterado e remova a linha amarela "
                 "localizada na última linha do arquivo extraído da CJI3."
             )
-    except Exception as e:
-        # Fallback caso st.modal não esteja disponível.
+    except Exception:
         st.info(
             "Para otimizar o uso das funcionalidades, por favor, carregue o arquivo CJI3 "
             "extraído do SAP com o layout BRP_RAW, utilizando o campo 'Drag and drop file here'. "
             "Certifique-se de que o formato das colunas permaneça inalterado e remova a linha amarela "
             "localizada na última linha do arquivo extraído da CJI3."
         )
-st.set_page_config(
-    page_title="Sistema de Controle e Comparação de Preços",
-    page_icon="logo-eqtl-app-teste2.png",
-    layout="wide"
-)
-
 # Caminho das planilhas base e exceção (definidos manualmente no código)
 CAMINHO_BASE = "planilha_base.xlsx"
 CAMINHO_EXCECAO = "planilha_excecao.XLSX"
