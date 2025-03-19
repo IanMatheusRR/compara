@@ -2,5 +2,4 @@ pandas
 openpyxl
 streamlit
 XlsxWriter
-streamlit pandas openpyxl xlsxwriter
 # adicione outras dependências necessárias
