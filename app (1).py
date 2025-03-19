@@ -129,10 +129,8 @@ def main():
     new_file = st.file_uploader("Escolha um arquivo Excel para comparação", type=["xlsx"])
     if new_file:
         try:
-            new_df = pd.read_excel(new_file)
-            st.write(f"Planilha de comparação carregada com {len(new_df)} linhas.")
+            new_df = pd.read_excel(new_file)      
             # Verificar as colunas da planilha carregada
-            st.write(f"Colunas encontradas na planilha de comparação: {new_df.columns}")
             
             # Filtrar e processar a planilha
             new_df = filtrar_excecoes(new_df, excecao_df)
