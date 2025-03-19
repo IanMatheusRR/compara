@@ -8,7 +8,7 @@ st.set_page_config(
     layout="wide"
 )
 # Agora o restante do código:
-if st.button("❓", key="info_button"):
+if st.button("bater-papo.png", key="info_button"):
     try:
         with st.modal("Instruções de Uso"):
             st.write(
