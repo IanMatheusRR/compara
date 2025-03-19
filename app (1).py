@@ -149,8 +149,8 @@ def main():
         except Exception as e:
             st.error(f"Ocorreu um erro ao processar a planilha: {e}")
             
-        # Calcular o PU
-        df_agrupado['PU'] = df_agrupado['Valor/moeda objeto'] / df_agrupado['Qtd.total entrada']
+        # Calcular o PU e arredondar para 2 casas decimais
+        df_agrupado['PU'] = (df_agrupado['Valor/moeda objeto'] / df_agrupado['Qtd.total entrada']).round(2)
 
         # Merge para adicionar DESC_MATERIAL, MAX_PU e MIN_PU da planilha base (usando a coluna Equipamento para associar)
         df_agrupado = pd.merge(
@@ -185,3 +185,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
