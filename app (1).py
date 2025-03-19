@@ -57,7 +57,7 @@ def gerar_arquivo_excel(df):
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df.to_excel(writer, index=False, sheet_name='Resultado')
         
-        # Acessar o objeto da planilha
+        # Acessar o objeto da planilha e o workbook
         workbook  = writer.book
         worksheet = writer.sheets['Resultado']
 
@@ -69,10 +69,20 @@ def gerar_arquivo_excel(df):
             max_len = df[col].astype(str).map(len).max()
             worksheet.set_column(i, i, max_len + 2)
 
-        # Criar um formato de célula centralizado
+        # Formato para o corpo da planilha: centralizado
         cell_format = workbook.add_format({'align': 'center', 'valign': 'vcenter'})
-        # Aplicar o formato centralizado a todas as células
         worksheet.set_column(0, len(df.columns)-1, None, cell_format)
+        
+        # Formato para o cabeçalho: fundo #003a63, texto branco e centralizado
+        header_format = workbook.add_format({
+            'align': 'center',
+            'valign': 'vcenter',
+            'bg_color': '#003a63',
+            'font_color': '#ffffff',
+            'bold': True
+        })
+        # Aplicar o formato no cabeçalho (primeira linha)
+        worksheet.set_row(0, None, header_format)
 
         writer.close()
     return output.getvalue()
@@ -126,7 +136,7 @@ def main():
     new_file = st.file_uploader("Escolha um arquivo Excel para comparação", type=["xlsx"])
     if new_file:
         try:
-            new_df = pd.read_excel(new_file)      
+            new_df = pd.read_excel(new_file)
             # Filtrar e processar a planilha
             new_df = filtrar_excecoes(new_df, excecao_df)
             new_df = new_df.dropna(subset=['Material'])
@@ -144,7 +154,7 @@ def main():
             st.error(f"Ocorreu um erro ao processar a planilha: {e}")
             return
         
-        # Merge para adicionar DESC_MATERIAL, MAX_PU e MIN_PU da planilha base (usando a coluna Equipamento para associar)
+        # Merge para adicionar DESC_MATERIAL, MAX_PU e MIN_PU da planilha base (associando pela coluna Material)
         df_agrupado = pd.merge(
             df_agrupado,
             base_df[['Equipamento', 'DESC_MATERIAL', 'MAX_PU', 'MIN_PU']],
@@ -186,5 +196,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
