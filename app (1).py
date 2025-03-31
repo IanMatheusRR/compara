@@ -18,7 +18,7 @@ def verificar_colunas(df, colunas_esperadas):
     return faltando, extras
 
 # Senha de permissão para atualização (altere conforme necessário)
-SENHA_AUTORIZADA = "E3719"
+SENHA_AUTORIZADA = ["E3719", "U8879"]
 
 # Inicializa a variável de sessão para controlar a exibição da mensagem
 if "show_info" not in st.session_state:
