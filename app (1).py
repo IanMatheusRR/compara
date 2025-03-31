@@ -17,6 +17,9 @@ def verificar_colunas(df, colunas_esperadas):
     extras = df_cols - esperado
     return faltando, extras
 
+# Senha de permissão para atualização (altere conforme necessário)
+SENHA_AUTORIZADA = "senha123"
+
 # Inicializa a variável de sessão para controlar a exibição da mensagem
 if "show_info" not in st.session_state:
     st.session_state.show_info = False
@@ -106,16 +109,10 @@ def gerar_arquivo_excel(df):
         df.to_excel(writer, index=False, sheet_name='Resultado', header=False)
         workbook  = writer.book
         worksheet = writer.sheets['Resultado']
-
-        # Adicionar filtro para as colunas existentes
         worksheet.autofilter(0, 0, 0, len(df.columns)-1)
-        
-        # Ajustar a largura de cada coluna baseada no conteúdo
         for i, col in enumerate(df.columns):
             max_len = df[col].astype(str).map(len).max()
             worksheet.set_column(i, i, max_len + 2)
-        
-        # Definir os formatos para cabeçalho e células
         header_format = workbook.add_format({
             'align': 'center',
             'valign': 'vcenter',
@@ -124,16 +121,11 @@ def gerar_arquivo_excel(df):
             'bold': True
         })
         cell_format = workbook.add_format({'align': 'center', 'valign': 'vcenter'})
-
-        # Reescrever o cabeçalho com o formato definido
         for col_num, header in enumerate(df.columns):
             worksheet.write(0, col_num, header, header_format)
-        
-        # Reescrever as células de dados (a partir da linha 1)
         for row_num in range(1, len(df) + 1):
             for col_num, value in enumerate(df.iloc[row_num - 1]):
                 safe_write(worksheet, row_num, col_num, value, cell_format)
-
         writer.close()
     return output.getvalue()
 
@@ -144,7 +136,6 @@ def filtrar_excecoes(comparacao_df, excecao_df):
     return df_filtrado
 
 def main():
-    # Exibir logo
     try:
         st.sidebar.image("GRUPO-EQUATORIAL-ENERGIA-LOGO_PADRAO_COR.png", width=400)
     except Exception:
@@ -156,32 +147,33 @@ def main():
     st.title("Sistema de Controle e Comparação de Preços")
     st.write("Este sistema verifica se os preços fornecidos estão dentro dos valores permitidos pela base.")
     
-    # Upload para atualizar a planilha base com verificação de colunas
+    # Upload e atualização da planilha base com verificação de senha e colunas
     st.sidebar.subheader("📂 Atualizar Planilha Base")
-    new_base_file = st.sidebar.file_uploader("Carregar Nova Planilha Base (Excel)", type=["xlsx"])
+    codigo_base = st.sidebar.text_input("Insira seu código para atualizar a planilha base", type="password")
+    new_base_file = st.sidebar.file_uploader("Carregar Nova Planilha Base (Excel)", type=["xlsx"], key="base_file")
     if new_base_file:
         new_base_df = pd.read_excel(new_base_file)
         faltando, extras = verificar_colunas(new_base_df, COLUNAS_ESPERADAS_BASE)
         if faltando or extras:
-            st.sidebar.error(
-                f"O arquivo base possui colunas incorretas!\nFaltando: {list(faltando)}\nExtras: {list(extras)}"
-            )
+            st.sidebar.error(f"O arquivo base possui colunas incorretas!\nFaltando: {list(faltando)}\nExtras: {list(extras)}")
+        elif codigo_base != SENHA_AUTORIZADA:
+            st.sidebar.error("Você não tem permissão para alterar")
         else:
             new_base_df.to_excel(CAMINHO_BASE, index=False)
             st.sidebar.success("✅ Planilha base atualizada com sucesso!")
     
-    # Upload para atualizar a planilha de comparação com verificação de colunas
-    st.sidebar.subheader("📂 Atualizar Planilha de Comparação")
-    new_comp_file = st.sidebar.file_uploader("Carregar Nova Planilha de Comparação (Excel)", type=["xlsx"])
-    if new_comp_file:
-        new_comp_df = pd.read_excel(new_comp_file)
-        faltando, extras = verificar_colunas(new_comp_df, COLUNAS_ESPERADAS_COMPARACAO)
-        if faltando or extras:
-            st.sidebar.error(
-                f"O arquivo de comparação possui colunas incorretas!\nFaltando: {list(faltando)}\nExtras: {list(extras)}"
-            )
+    # Upload e atualização da planilha de exceção com verificação de senha
+    st.sidebar.subheader("📂 Atualizar Planilha de Exceção")
+    codigo_excecao = st.sidebar.text_input("Insira seu código para atualizar a planilha de exceção", type="password", key="excecao_code")
+    new_excecao_file = st.sidebar.file_uploader("Carregar Nova Planilha de Exceção (Excel)", type=["xlsx"], key="excecao_file")
+    if new_excecao_file:
+        new_excecao_df = pd.read_excel(new_excecao_file)
+        # Supondo que a verificação de colunas não seja necessária para a exceção
+        if codigo_excecao != SENHA_AUTORIZADA:
+            st.sidebar.error("Você não tem permissão para alterar")
         else:
-            st.sidebar.success("✅ Arquivo de comparação carregado corretamente!")
+            new_excecao_df.to_excel(CAMINHO_EXCECAO, index=False)
+            st.sidebar.success("✅ Planilha de exceção atualizada com sucesso!")
     
     base_df = load_base_planilha()
     if base_df is None:
@@ -193,16 +185,15 @@ def main():
         st.error("⚠️ Nenhuma planilha de exceção encontrada! Verifique o caminho e tente novamente.")
         return
     
+    # Upload do arquivo para comparação com verificação de colunas
     st.subheader("📂 Carregar Planilha para Comparação")
-    new_file = st.file_uploader("Escolha um arquivo Excel para comparação", type=["xlsx"])
+    new_file = st.file_uploader("Escolha um arquivo Excel para comparação", type=["xlsx"], key="comp_file")
     if new_file:
         try:
             new_df = pd.read_excel(new_file)
             faltando, extras = verificar_colunas(new_df, COLUNAS_ESPERADAS_COMPARACAO)
             if faltando or extras:
-                st.error(
-                    f"O arquivo de comparação possui colunas incorretas!\nFaltando: {list(faltando)}\nExtras: {list(extras)}"
-                )
+                st.error(f"O arquivo de comparação possui colunas incorretas!\nFaltando: {list(faltando)}\nExtras: {list(extras)}")
                 return
             new_df = filtrar_excecoes(new_df, excecao_df)
             new_df = new_df.dropna(subset=['Material'])
@@ -255,6 +246,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
