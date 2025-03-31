@@ -144,7 +144,7 @@ def main():
     
     # Atualizar a planilha base com verificação de colunas e código
     st.sidebar.subheader("📂 Atualizar Planilha Base")
-    codigo_base = st.sidebar.text_input("Insira seu código para atualizar a planilha base", type="password")
+    codigo_base = st.sidebar.text_input("Insira sua matrícula para atualizar a planilha base", type="password")
     new_base_file = st.sidebar.file_uploader("Carregar Nova Planilha Base (Excel)", type=["xlsx"], key="base_file")
     if new_base_file:
         new_base_df = pd.read_excel(new_base_file)
@@ -161,7 +161,7 @@ def main():
     
     # Atualizar a planilha de exceção com verificação de código
     st.sidebar.subheader("📂 Atualizar Planilha de Exceção")
-    codigo_excecao = st.sidebar.text_input("Insira seu código para atualizar a planilha de exceção", type="password", key="excecao_code")
+    codigo_excecao = st.sidebar.text_input("Insira sua matrícula para atualizar a planilha de exceção", type="password", key="excecao_code")
     new_excecao_file = st.sidebar.file_uploader("Carregar Nova Planilha de Exceção (Excel)", type=["xlsx"], key="excecao_file")
     if new_excecao_file:
         new_excecao_df = pd.read_excel(new_excecao_file)
