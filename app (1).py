@@ -9,9 +9,13 @@ st.set_page_config(
     layout="wide"
 )
 
-# Função auxiliar para verificar se as colunas de um DataFrame são as esperadas
-def colunas_validas(df, colunas_esperadas):
-    return sorted(df.columns.tolist()) == sorted(colunas_esperadas)
+# Função auxiliar para verificar se as colunas do DataFrame são as esperadas
+def verificar_colunas(df, colunas_esperadas):
+    df_cols = set(df.columns.tolist())
+    esperado = set(colunas_esperadas)
+    faltando = esperado - df_cols
+    extras = df_cols - esperado
+    return faltando, extras
 
 # Inicializa a variável de sessão para controlar a exibição da mensagem
 if "show_info" not in st.session_state:
@@ -111,7 +115,7 @@ def gerar_arquivo_excel(df):
             max_len = df[col].astype(str).map(len).max()
             worksheet.set_column(i, i, max_len + 2)
         
-        # Definir os formatos
+        # Definir os formatos para cabeçalho e células
         header_format = workbook.add_format({
             'align': 'center',
             'valign': 'vcenter',
@@ -121,7 +125,7 @@ def gerar_arquivo_excel(df):
         })
         cell_format = workbook.add_format({'align': 'center', 'valign': 'vcenter'})
 
-        # Reescrever o cabeçalho com o formato do cabeçalho
+        # Reescrever o cabeçalho com o formato definido
         for col_num, header in enumerate(df.columns):
             worksheet.write(0, col_num, header, header_format)
         
@@ -140,6 +144,7 @@ def filtrar_excecoes(comparacao_df, excecao_df):
     return df_filtrado
 
 def main():
+    # Exibir logo
     try:
         st.sidebar.image("GRUPO-EQUATORIAL-ENERGIA-LOGO_PADRAO_COR.png", width=400)
     except Exception:
@@ -151,24 +156,32 @@ def main():
     st.title("Sistema de Controle e Comparação de Preços")
     st.write("Este sistema verifica se os preços fornecidos estão dentro dos valores permitidos pela base.")
     
-    # Atualizar a planilha base com verificação de colunas
+    # Upload para atualizar a planilha base com verificação de colunas
     st.sidebar.subheader("📂 Atualizar Planilha Base")
     new_base_file = st.sidebar.file_uploader("Carregar Nova Planilha Base (Excel)", type=["xlsx"])
     if new_base_file:
         new_base_df = pd.read_excel(new_base_file)
-        if not colunas_validas(new_base_df, COLUNAS_ESPERADAS_BASE):
-            st.sidebar.error("O arquivo base possui colunas diferentes das esperadas!")
+        faltando, extras = verificar_colunas(new_base_df, COLUNAS_ESPERADAS_BASE)
+        if faltando or extras:
+            st.sidebar.error(
+                f"O arquivo base possui colunas incorretas!\nFaltando: {list(faltando)}\nExtras: {list(extras)}"
+            )
         else:
             new_base_df.to_excel(CAMINHO_BASE, index=False)
             st.sidebar.success("✅ Planilha base atualizada com sucesso!")
     
-    # Atualizar a planilha de exceção (sem verificação de colunas, pois não foi especificado)
-    st.sidebar.subheader("📂 Atualizar Planilha de Exceção")
-    new_excecao_file = st.sidebar.file_uploader("Carregar Nova Planilha de Exceção (Excel)", type=["xlsx"])
-    if new_excecao_file:
-        new_excecao_df = pd.read_excel(new_excecao_file)
-        new_excecao_df.to_excel(CAMINHO_EXCECAO, index=False)
-        st.sidebar.success("✅ Planilha de exceção atualizada com sucesso!")
+    # Upload para atualizar a planilha de comparação com verificação de colunas
+    st.sidebar.subheader("📂 Atualizar Planilha de Comparação")
+    new_comp_file = st.sidebar.file_uploader("Carregar Nova Planilha de Comparação (Excel)", type=["xlsx"])
+    if new_comp_file:
+        new_comp_df = pd.read_excel(new_comp_file)
+        faltando, extras = verificar_colunas(new_comp_df, COLUNAS_ESPERADAS_COMPARACAO)
+        if faltando or extras:
+            st.sidebar.error(
+                f"O arquivo de comparação possui colunas incorretas!\nFaltando: {list(faltando)}\nExtras: {list(extras)}"
+            )
+        else:
+            st.sidebar.success("✅ Arquivo de comparação carregado corretamente!")
     
     base_df = load_base_planilha()
     if base_df is None:
@@ -180,14 +193,16 @@ def main():
         st.error("⚠️ Nenhuma planilha de exceção encontrada! Verifique o caminho e tente novamente.")
         return
     
-    # Carregar planilha para comparação com verificação de colunas
     st.subheader("📂 Carregar Planilha para Comparação")
     new_file = st.file_uploader("Escolha um arquivo Excel para comparação", type=["xlsx"])
     if new_file:
         try:
             new_df = pd.read_excel(new_file)
-            if not colunas_validas(new_df, COLUNAS_ESPERADAS_COMPARACAO):
-                st.error("O arquivo de comparação possui colunas diferentes das esperadas!")
+            faltando, extras = verificar_colunas(new_df, COLUNAS_ESPERADAS_COMPARACAO)
+            if faltando or extras:
+                st.error(
+                    f"O arquivo de comparação possui colunas incorretas!\nFaltando: {list(faltando)}\nExtras: {list(extras)}"
+                )
                 return
             new_df = filtrar_excecoes(new_df, excecao_df)
             new_df = new_df.dropna(subset=['Material'])
@@ -240,6 +255,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
