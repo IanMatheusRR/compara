@@ -157,6 +157,7 @@ def main():
             st.sidebar.error("Você não tem permissão para alterar")
         else:
             new_base_df.to_excel(CAMINHO_BASE, index=False)
+            load_base_planilha.clear()  # <- Adicione esta linha
             st.sidebar.success("✅ Planilha base atualizada com sucesso!")
     
     # Atualizar a planilha de exceção com verificação de código
