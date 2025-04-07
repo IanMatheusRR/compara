@@ -157,7 +157,7 @@ def main():
             st.sidebar.error("Você não tem permissão para alterar")
         else:
             new_base_df.to_excel(CAMINHO_BASE, index=False)
-            load_base_planilha.clear()  # <- Adicione esta linha
+            load_base_planilha.clear()  # Limpa o cache para forçar recarregamento
             st.sidebar.success("✅ Planilha base atualizada com sucesso!")
     
     # Atualizar a planilha de exceção com verificação de código
@@ -170,6 +170,7 @@ def main():
             st.sidebar.error("Você não tem permissão para alterar")
         else:
             new_excecao_df.to_excel(CAMINHO_EXCECAO, index=False)
+            load_excecao_planilha.clear()
             st.sidebar.success("✅ Planilha de exceção atualizada com sucesso!")
     
     base_df = load_base_planilha()
@@ -193,6 +194,8 @@ def main():
                     f"O arquivo de comparação possui colunas incorretas!\nFaltando: {list(faltando)}\nExtras: {list(extras)}"
                 )
                 return
+            # Excluir linhas cujo valor na coluna "Elemento PEP" termine com ".D"
+            new_df = new_df[~new_df["Elemento PEP"].astype(str).str.strip().str.endswith(".D")]
             new_df = filtrar_excecoes(new_df, excecao_df)
             new_df = new_df.dropna(subset=['Material'])
             
