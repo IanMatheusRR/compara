@@ -65,9 +65,12 @@ COLUNAS_ESPERADAS_COMPARACAO = [
     "Nº ref.estorno", "Operação ref."
 ]
 
+# A ordem final das colunas processadas será:
+# ["Empresa", "Elemento PEP", "Material", "DESC_MATERIAL", "Qtd.total entrada",
+#  "Valor/moeda objeto", "PU", "MAX_PU", "MIN_PU", "Resultado"]
 COLUNAS_PROCESSADAS = [
     "Empresa", "Elemento PEP", "Material", "DESC_MATERIAL", "Qtd.total entrada",
-    "Valor/moeda objeto", "MAX_PU", "MIN_PU", "PU", "Resultado"
+    "Valor/moeda objeto", "PU", "MAX_PU", "MIN_PU", "Resultado"
 ]
 
 @st.cache_data
@@ -108,6 +111,8 @@ def gerar_arquivo_excel(df):
         for i, col in enumerate(df.columns):
             max_len = df[col].astype(str).map(len).max()
             worksheet.set_column(i, i, max_len + 2)
+        
+        # Formato padrão para cabeçalho
         header_format = workbook.add_format({
             'align': 'center',
             'valign': 'vcenter',
@@ -115,9 +120,43 @@ def gerar_arquivo_excel(df):
             'font_color': '#ffffff',
             'bold': True
         })
+        # Formatos customizados para colunas específicas
+        header_format_max = workbook.add_format({
+            'align': 'center',
+            'valign': 'vcenter',
+            'bg_color': '#af0000',
+            'font_color': '#ffffff',
+            'bold': True
+        })
+        header_format_min = workbook.add_format({
+            'align': 'center',
+            'valign': 'vcenter',
+            'bg_color': '#0070c0',
+            'font_color': '#ffffff',
+            'bold': True
+        })
+        header_format_result = workbook.add_format({
+            'align': 'center',
+            'valign': 'vcenter',
+            'bg_color': '#9bbb59',
+            'font_color': '#ffffff',
+            'bold': True
+        })
+        
         cell_format = workbook.add_format({'align': 'center', 'valign': 'vcenter'})
+        
+        # Reescrever o cabeçalho com formatação customizada para colunas específicas
         for col_num, header in enumerate(df.columns):
-            worksheet.write(0, col_num, header, header_format)
+            if header == "MAX_PU":
+                fmt = header_format_max
+            elif header == "MIN_PU":
+                fmt = header_format_min
+            elif header == "Resultado":
+                fmt = header_format_result
+            else:
+                fmt = header_format
+            worksheet.write(0, col_num, header, fmt)
+        
         for row_num in range(1, len(df) + 1):
             for col_num, value in enumerate(df.iloc[row_num - 1]):
                 safe_write(worksheet, row_num, col_num, value, cell_format)
@@ -194,7 +233,7 @@ def main():
                     f"O arquivo de comparação possui colunas incorretas!\nFaltando: {list(faltando)}\nExtras: {list(extras)}"
                 )
                 return
-            # Excluir linhas cujo valor na coluna "Elemento PEP" termine com ".D"
+            # Excluir linhas onde 'Elemento PEP' termina com ".D"
             new_df = new_df[~new_df["Elemento PEP"].astype(str).str.strip().str.endswith(".D")]
             new_df = filtrar_excecoes(new_df, excecao_df)
             new_df = new_df.dropna(subset=['Material'])
@@ -209,6 +248,8 @@ def main():
             st.error(f"Ocorreu um erro ao processar a planilha: {e}")
             return
         
+        # Atualize a ordem das colunas: troque "PU" com "MAX_PU"
+        # Primeiro, mescle com os dados da planilha base
         df_agrupado = pd.merge(
             df_agrupado,
             base_df[['Equipamento', 'DESC_MATERIAL', 'MAX_PU', 'MIN_PU']],
@@ -222,14 +263,21 @@ def main():
             (df_agrupado['Qtd.total entrada'] != 0) & (df_agrupado['Valor/moeda objeto'] != 0)
         ]
         
+        # Nova lógica para a coluna Resultado:
+        # Se PU > MAX_PU: "Acima do máximo"
+        # Se PU < MIN_PU: "Abaixo do mínimo"
+        # Caso contrário: "OK"
         df_agrupado['Resultado'] = df_agrupado.apply(
-            lambda row: "✅ OK" if pd.notnull(row['MIN_PU']) and pd.notnull(row['MAX_PU']) and row['MIN_PU'] <= row['PU'] <= row['MAX_PU'] 
-            else ("❌ Indevido" if pd.notnull(row['MIN_PU']) and pd.notnull(row['MAX_PU']) else "⚠️ Equipamento não encontrado"), axis=1
+            lambda row: ("Acima do máximo" if row['PU'] > row['MAX_PU'] 
+                         else "Abaixo do mínimo" if row['PU'] < row['MIN_PU'] 
+                         else "OK") if pd.notnull(row['MIN_PU']) and pd.notnull(row['MAX_PU'])
+                         else "⚠️ Equipamento não encontrado", axis=1
         )
         
+        # Reordenar as colunas: trocar "PU" com "MAX_PU"
         final_columns = [
             "Empresa", "Elemento PEP", "Material", "DESC_MATERIAL", "Qtd.total entrada",
-            "Valor/moeda objeto", "MAX_PU", "MIN_PU", "PU", "Resultado"
+            "Valor/moeda objeto", "PU", "MAX_PU", "MIN_PU", "Resultado"
         ]
         df_agrupado = df_agrupado[final_columns]
         
