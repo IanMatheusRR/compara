@@ -65,10 +65,7 @@ COLUNAS_ESPERADAS_COMPARACAO = [
     "Nº ref.estorno", "Operação ref."
 ]
 
-# A ordem final das colunas processadas (antes das novas colunas):
-# ["Empresa", "Elemento PEP", "Material", "DESC_MATERIAL", "Qtd.total entrada",
-#  "Valor/moeda objeto", "PU", "MAX_PU", "MIN_PU", "Resultado"]
-# Após a inclusão das novas colunas ("DIF" e "% DIF"), a ordem final será:
+# Ordem final desejada com as novas colunas
 FINAL_COLUMNS = [
     "Empresa", "Elemento PEP", "Material", "DESC_MATERIAL", "Qtd.total entrada",
     "Valor/moeda objeto", "PU", "MAX_PU", "MIN_PU", "DIF", "% DIF", "Resultado"
@@ -143,9 +140,10 @@ def gerar_arquivo_excel(df):
             'font_color': '#ffffff',
             'bold': True
         })
+        
         cell_format = workbook.add_format({'align': 'center', 'valign': 'vcenter'})
         
-        # Escrevendo os cabeçalhos com formatação especial para "DIF", "% DIF" e "Resultado"
+        # Escrevendo o cabeçalho com formatação customizada
         for col_num, header in enumerate(df.columns):
             if header in ["DIF", "% DIF", "Resultado"]:
                 fmt = header_format_custom
@@ -197,7 +195,7 @@ def main():
             st.sidebar.error("Você não tem permissão para alterar")
         else:
             new_base_df.to_excel(CAMINHO_BASE, index=False)
-            load_base_planilha.clear()  # Limpa o cache para forçar recarregamento
+            load_base_planilha.clear()
             st.sidebar.success("✅ Planilha base atualizada com sucesso!")
     
     # Atualizar a planilha de exceção com verificação de código
@@ -263,10 +261,7 @@ def main():
             (df_agrupado['Qtd.total entrada'] != 0) & (df_agrupado['Valor/moeda objeto'] != 0)
         ]
         
-        # Nova lógica para a coluna Resultado:
-        # Se PU > MAX_PU: "⬆️ Acima do máximo"
-        # Se PU < MIN_PU: "⬇️ Abaixo do mínimo"
-        # Caso contrário: "✅ OK"
+        # Atualiza a coluna "Resultado" com os novos critérios
         df_agrupado['Resultado'] = df_agrupado.apply(
             lambda row: ("⬆️ Acima do máximo" if row['PU'] > row['MAX_PU'] 
                          else "⬇️ Abaixo do mínimo" if row['PU'] < row['MIN_PU'] 
@@ -274,25 +269,21 @@ def main():
                          else "⚠️ Equipamento não encontrado", axis=1
         )
         
-        # Criar a coluna "DIF"
+        # Criar a coluna "DIF":
         df_agrupado["DIF"] = df_agrupado.apply(
-            lambda row: (row["MIN_PU"] - row["PU"]) if "Abaixo do mínimo" in row["Resultado"] 
-                        else (row["PU"] - row["MAX_PU"]) if "Acima do máximo" in row["Resultado"] 
+            lambda row: (row["MIN_PU"] - row["PU"]) if row["Resultado"] == "⬇️ Abaixo do mínimo" 
+                        else (row["PU"] - row["MAX_PU"]) if row["Resultado"] == "⬆️ Acima do máximo" 
                         else None, axis=1
         )
-        # Criar a coluna "% DIF"
+        # Criar a coluna "% DIF":
         df_agrupado["% DIF"] = df_agrupado.apply(
-            lambda row: (row["DIF"] / row["MIN_PU"]) if "Abaixo do mínimo" in row["Resultado"] 
-                        else (row["DIF"] / row["MAX_PU"]) if "Acima do máximo" in row["Resultado"] 
+            lambda row: (row["DIF"] / row["MIN_PU"]) if row["Resultado"] == "⬇️ Abaixo do mínimo" 
+                        else (row["DIF"] / row["MAX_PU"]) if row["Resultado"] == "⬆️ Acima do máximo" 
                         else None, axis=1
         )
         
-        # Reordenar as colunas conforme a nova ordem desejada:
-        final_columns = [
-            "Empresa", "Elemento PEP", "Material", "DESC_MATERIAL", "Qtd.total entrada",
-            "Valor/moeda objeto", "PU", "MAX_PU", "MIN_PU", "DIF", "% DIF", "Resultado"
-        ]
-        df_agrupado = df_agrupado[final_columns]
+        # Reordene as colunas conforme a ordem final desejada
+        df_agrupado = df_agrupado[FINAL_COLUMNS]
         
         processed_df = df_agrupado.copy()
         processed_file = gerar_arquivo_excel(processed_df)
@@ -308,3 +299,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
