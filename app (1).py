@@ -33,17 +33,17 @@ if st.session_state.show_info:
     try:
         with st.modal("Instruções de Uso"):
             st.write(
-                "Para otimizar o uso das funcionalidades, por favor, carregue o arquivo CJI3 extraído do SAP "
-                "com o layout BRP_RAW, utilizando o campo 'Drag and drop file here'. Certifique-se de que o formato "
-                "das colunas permaneça inalterado e remova a linha amarela localizada na última linha do arquivo "
-                "extraído da CJI3."
+                "Para otimizar o uso das funcionalidades, por favor, carregue o arquivo CJI3 "
+                "extraído do SAP com o layout BRP_RAW, utilizando o campo 'Drag and drop file here'. "
+                "Certifique-se de que o formato das colunas permaneça inalterado e remova a linha amarela "
+                "localizada na última linha do arquivo extraído da CJI3."
             )
     except Exception:
         st.info(
-            "Para otimizar o uso das funcionalidades, por favor, carregue o arquivo CJI3 extraído do SAP "
-            "com o layout BRP_RAW, utilizando o campo 'Drag and drop file here'. Certifique-se de que o formato "
-            "das colunas permaneça inalterado e remova a linha amarela localizada na última linha do arquivo "
-            "extraído da CJI3."
+            "Para otimizar o uso das funcionalidades, por favor, carregue o arquivo CJI3 "
+            "extraído do SAP com o layout BRP_RAW, utilizando o campo 'Drag and drop file here'. "
+            "Certifique-se de que o formato das colunas permaneça inalterado e remova a linha amarela "
+            "localizada na última linha do arquivo extraído da CJI3."
         )
 
 # Caminhos dos arquivos
@@ -65,7 +65,7 @@ COLUNAS_ESPERADAS_COMPARACAO = [
     "Nº ref.estorno", "Operação ref."
 ]
 
-# Ordem final com as novas colunas adicionadas
+# Ordem final final das colunas processadas (com as novas colunas "DIF" e "% DIF")
 FINAL_COLUMNS = [
     "Empresa", "Elemento PEP", "Material", "DESC_MATERIAL", "Qtd.total entrada",
     "Valor/moeda objeto", "PU", "MAX_PU", "MIN_PU", "DIF", "% DIF", "Resultado"
@@ -101,50 +101,50 @@ def safe_write(worksheet, row, col, value, cell_format):
 
 def gerar_arquivo_excel(df):
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Resultado', header=False)
-        workbook  = writer.book
-        worksheet = writer.sheets['Resultado']
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        df.to_excel(writer, index=False, sheet_name="Resultado", header=False)
+        workbook = writer.book
+        worksheet = writer.sheets["Resultado"]
         worksheet.autofilter(0, 0, 0, len(df.columns)-1)
         for i, col in enumerate(df.columns):
             max_len = df[col].astype(str).map(len).max()
             worksheet.set_column(i, i, max_len + 2)
-        
         # Formato padrão para cabeçalho
         header_format_default = workbook.add_format({
-            'align': 'center',
-            'valign': 'vcenter',
-            'bg_color': '#003a63',
-            'font_color': '#ffffff',
-            'bold': True
+            "align": "center",
+            "valign": "vcenter",
+            "bg_color": "#003a63",
+            "font_color": "#ffffff",
+            "bold": True
         })
-        # Formatos customizados para colunas específicas
+        # Formatos customizados
         header_format_max = workbook.add_format({
-            'align': 'center',
-            'valign': 'vcenter',
-            'bg_color': '#af0000',
-            'font_color': '#ffffff',
-            'bold': True
+            "align": "center",
+            "valign": "vcenter",
+            "bg_color": "#af0000",
+            "font_color": "#ffffff",
+            "bold": True
         })
         header_format_min = workbook.add_format({
-            'align': 'center',
-            'valign': 'vcenter',
-            'bg_color': '#0070c0',
-            'font_color': '#ffffff',
-            'bold': True
+            "align": "center",
+            "valign": "vcenter",
+            "bg_color": "#0070c0",
+            "font_color": "#ffffff",
+            "bold": True
         })
         header_format_custom = workbook.add_format({
-            'align': 'center',
-            'valign': 'vcenter',
-            'bg_color': '#632523',
-            'font_color': '#ffffff',
-            'bold': True
+            "align": "center",
+            "valign": "vcenter",
+            "bg_color": "#632523",
+            "font_color": "#ffffff",
+            "bold": True
         })
-        cell_format = workbook.add_format({'align': 'center', 'valign': 'vcenter'})
+        cell_format = workbook.add_format({"align": "center", "valign": "vcenter"})
         
-        # Escrevendo os cabeçalhos com formatação especial:
-        # Colunas "MAX_PU" e "MIN_PU" usam seus formatos especiais,
-        # e "DIF", "% DIF" e "Resultado" usam o formato customizado (#632523)
+        # Escrevendo os cabeçalhos com formatação:
+        # "MAX_PU" -> header_format_max, "MIN_PU" -> header_format_min,
+        # "DIF" e "% DIF" e "Resultado" -> header_format_custom;
+        # os demais utilizam header_format_default.
         for col_num, header in enumerate(df.columns):
             if header == "MAX_PU":
                 fmt = header_format_max
@@ -156,7 +156,6 @@ def gerar_arquivo_excel(df):
                 fmt = header_format_default
             worksheet.write(0, col_num, header, fmt)
         
-        # Escrevendo os dados
         for row_num in range(1, len(df) + 1):
             for col_num, value in enumerate(df.iloc[row_num - 1]):
                 safe_write(worksheet, row_num, col_num, value, cell_format)
@@ -166,7 +165,7 @@ def gerar_arquivo_excel(df):
 def filtrar_excecoes(comparacao_df, excecao_df):
     df_filtrado = comparacao_df.copy()
     df_ex = excecao_df.copy()
-    df_filtrado = df_filtrado[~df_filtrado['Material'].isin(df_ex['Nº de serviço'])].copy()
+    df_filtrado = df_filtrado[~df_filtrado["Material"].isin(df_ex["Nº de serviço"])].copy()
     return df_filtrado
 
 def main():
@@ -236,14 +235,14 @@ def main():
             # Excluir linhas onde 'Elemento PEP' termina com ".D"
             new_df = new_df[~new_df["Elemento PEP"].astype(str).str.strip().str.endswith(".D")]
             new_df = filtrar_excecoes(new_df, excecao_df)
-            new_df = new_df.dropna(subset=['Material'])
+            new_df = new_df.dropna(subset=["Material"])
             
             # Agrupar dados por Empresa, Elemento PEP e Material
-            df_agrupado = new_df.groupby(['Empresa', 'Elemento PEP', 'Material'], as_index=False).agg({
-                'Qtd.total entrada': 'sum',
-                'Valor/moeda objeto': 'sum'
+            df_agrupado = new_df.groupby(["Empresa", "Elemento PEP", "Material"], as_index=False).agg({
+                "Qtd.total entrada": "sum",
+                "Valor/moeda objeto": "sum"
             })
-            df_agrupado['PU'] = (df_agrupado['Valor/moeda objeto'] / df_agrupado['Qtd.total entrada']).round(2)
+            df_agrupado["PU"] = (df_agrupado["Valor/moeda objeto"] / df_agrupado["Qtd.total entrada"]).round(2)
         except Exception as e:
             st.error(f"Ocorreu um erro ao processar a planilha: {e}")
             return
@@ -251,45 +250,45 @@ def main():
         # Merge com a planilha base para obter DESC_MATERIAL, MAX_PU e MIN_PU
         df_agrupado = pd.merge(
             df_agrupado,
-            base_df[['Equipamento', 'DESC_MATERIAL', 'MAX_PU', 'MIN_PU']],
-            left_on='Material',
-            right_on='Equipamento',
-            how='left'
+            base_df[["Equipamento", "DESC_MATERIAL", "MAX_PU", "MIN_PU"]],
+            left_on="Material",
+            right_on="Equipamento",
+            how="left"
         )
-        df_agrupado.drop(columns=['Equipamento'], inplace=True)
+        df_agrupado.drop(columns=["Equipamento"], inplace=True)
         
         df_agrupado = df_agrupado[
-            (df_agrupado['Qtd.total entrada'] != 0) & (df_agrupado['Valor/moeda objeto'] != 0)
+            (df_agrupado["Qtd.total entrada"] != 0) & (df_agrupado["Valor/moeda objeto"] != 0)
         ]
         
-        # Nova lógica para a coluna Resultado:
+        # Lógica para a coluna Resultado:
         # Se PU > MAX_PU: "⬆️ Acima do máximo"
         # Se PU < MIN_PU: "⬇️ Abaixo do mínimo"
         # Caso contrário: "✅ OK"
-        df_agrupado['Resultado'] = df_agrupado.apply(
-            lambda row: ("⬆️ Acima do máximo" if row['PU'] > row['MAX_PU'] 
-                         else "⬇️ Abaixo do mínimo" if row['PU'] < row['MIN_PU'] 
-                         else "✅ OK") if pd.notnull(row['MIN_PU']) and pd.notnull(row['MAX_PU'])
-                         else "⚠️ Equipamento não encontrado", axis=1
+        df_agrupado["Resultado"] = df_agrupado.apply(
+            lambda row: ("⬆️ Acima do máximo" if row["PU"] > row["MAX_PU"] 
+                         else "⬇️ Abaixo do mínimo" if row["PU"] < row["MIN_PU"] 
+                         else "✅ OK") if pd.notnull(row["MIN_PU"]) and pd.notnull(row["MAX_PU"])
+            else "⚠️ Equipamento não encontrado", axis=1
         )
         
-        # Criar a coluna "DIF":
-        # Se Resultado indicar "Abaixo do mínimo", DIF = MIN_PU - PU
-        # Se Resultado indicar "Acima do máximo", DIF = PU - MAX_PU
-        # Caso contrário, DIF fica vazia (None)
+        # Criação da coluna "DIF":
+        # Se PU estiver entre MIN_PU e MAX_PU -> DIF = None
+        # Se PU > MAX_PU -> DIF = PU - MAX_PU
+        # Se PU < MIN_PU -> DIF = MIN_PU - PU
         df_agrupado["DIF"] = df_agrupado.apply(
-            lambda row: row["MIN_PU"] - row["PU"] if "Abaixo do mínimo" in row["Resultado"]
-            else row["PU"] - row["MAX_PU"] if "Acima do máximo" in row["Resultado"]
+            lambda row: row["PU"] - row["MAX_PU"] if pd.notnull(row["MAX_PU"]) and row["PU"] > row["MAX_PU"] 
+            else row["MIN_PU"] - row["PU"] if pd.notnull(row["MIN_PU"]) and row["PU"] < row["MIN_PU"]
             else None, axis=1
         )
         
-        # Criar a coluna "% DIF":
-        # Se Resultado indicar "Abaixo do mínimo", % DIF = DIF / MIN_PU
-        # Se indicar "Acima do máximo", % DIF = DIF / MAX_PU
-        # Caso contrário, vazio
+        # Criação da coluna "% DIF":
+        # Se PU > MAX_PU -> (% DIF) = (DIF / MAX_PU) * 100 com sinal de porcentagem
+        # Se PU < MIN_PU -> (% DIF) = (DIF / MIN_PU) * 100 com sinal de porcentagem
+        # Caso contrário, None
         df_agrupado["% DIF"] = df_agrupado.apply(
-            lambda row: row["DIF"] / row["MIN_PU"] if "Abaixo do mínimo" in row["Resultado"]
-            else row["DIF"] / row["MAX_PU"] if "Acima do máximo" in row["Resultado"]
+            lambda row: f"{(row['DIF'] / row['MAX_PU'] * 100):.2f}%" if pd.notnull(row["MAX_PU"]) and row["PU"] > row["MAX_PU"] 
+            else f"{(row['DIF'] / row['MIN_PU'] * 100):.2f}%" if pd.notnull(row["MIN_PU"]) and row["PU"] < row["MIN_PU"]
             else None, axis=1
         )
         
@@ -314,4 +313,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
