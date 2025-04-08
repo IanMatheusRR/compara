@@ -268,9 +268,9 @@ def main():
         # Se PU < MIN_PU: "Abaixo do mínimo"
         # Caso contrário: "OK"
         df_agrupado['Resultado'] = df_agrupado.apply(
-            lambda row: ("Acima do máximo" if row['PU'] > row['MAX_PU'] 
-                         else "Abaixo do mínimo" if row['PU'] < row['MIN_PU'] 
-                         else "OK") if pd.notnull(row['MIN_PU']) and pd.notnull(row['MAX_PU'])
+            lambda row: ("⬆️ Acima do máximo" if row['PU'] > row['MAX_PU'] 
+                         else "⬇️ Abaixo do mínimo" if row['PU'] < row['MIN_PU'] 
+                         else "✅ OK") if pd.notnull(row['MIN_PU']) and pd.notnull(row['MAX_PU'])
                          else "⚠️ Equipamento não encontrado", axis=1
         )
         
