@@ -48,7 +48,7 @@ if st.session_state.show_info:
 
 # Caminho das planilhas base e exceção (definidos manualmente no código)
 CAMINHO_BASE = "planilha_base.xlsx"
-CAMINHO_EXCECAO = "planilha__Excecao.xlsx"
+CAMINHO_EXCECAO = "Planilha__Excecao.xlsx"
 
 # Listas de colunas esperadas
 COLUNAS_ESPERADAS_BASE = ["EMPRESA", "Equipamento", "DESC_MATERIAL", "MAX_PU", "MIN_PU"]
