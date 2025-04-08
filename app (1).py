@@ -17,7 +17,7 @@ def verificar_colunas(df, colunas_esperadas):
     extras = df_cols - esperado
     return faltando, extras
 
-# Defina uma lista de códigos autorizados
+# Lista de códigos autorizados
 CODIGOS_AUTORIZADOS = ["E3719", "U8877", "T667788"]
 
 # Inicializa a variável de sessão para controlar a exibição da mensagem
@@ -33,20 +33,20 @@ if st.session_state.show_info:
     try:
         with st.modal("Instruções de Uso"):
             st.write(
-                "Para otimizar o uso das funcionalidades, por favor, carregue o arquivo CJI3 "
-                "extraído do SAP com o layout BRP_RAW, utilizando o campo 'Drag and drop file here'. "
-                "Certifique-se de que o formato das colunas permaneça inalterado e remova a linha amarela "
-                "localizada na última linha do arquivo extraído da CJI3."
+                "Para otimizar o uso das funcionalidades, por favor, carregue o arquivo CJI3 extraído do SAP "
+                "com o layout BRP_RAW, utilizando o campo 'Drag and drop file here'. Certifique-se de que o formato "
+                "das colunas permaneça inalterado e remova a linha amarela localizada na última linha do arquivo "
+                "extraído da CJI3."
             )
     except Exception:
         st.info(
-            "Para otimizar o uso das funcionalidades, por favor, carregue o arquivo CJI3 "
-            "extraído do SAP com o layout BRP_RAW, utilizando o campo 'Drag and drop file here'. "
-            "Certifique-se de que o formato das colunas permaneça inalterado e remova a linha amarela "
-            "localizada na última linha do arquivo extraído da CJI3."
+            "Para otimizar o uso das funcionalidades, por favor, carregue o arquivo CJI3 extraído do SAP "
+            "com o layout BRP_RAW, utilizando o campo 'Drag and drop file here'. Certifique-se de que o formato "
+            "das colunas permaneça inalterado e remova a linha amarela localizada na última linha do arquivo "
+            "extraído da CJI3."
         )
 
-# Caminhos das planilhas base e exceção (definidos manualmente)
+# Caminhos dos arquivos
 CAMINHO_BASE = "planilha_base.xlsx"
 CAMINHO_EXCECAO = "planilha__Excecao.xlsx"
 
@@ -65,7 +65,7 @@ COLUNAS_ESPERADAS_COMPARACAO = [
     "Nº ref.estorno", "Operação ref."
 ]
 
-# Ordem final desejada com as novas colunas
+# Ordem final com as novas colunas adicionadas
 FINAL_COLUMNS = [
     "Empresa", "Elemento PEP", "Material", "DESC_MATERIAL", "Qtd.total entrada",
     "Valor/moeda objeto", "PU", "MAX_PU", "MIN_PU", "DIF", "% DIF", "Resultado"
@@ -140,17 +140,18 @@ def gerar_arquivo_excel(df):
             'font_color': '#ffffff',
             'bold': True
         })
-        
         cell_format = workbook.add_format({'align': 'center', 'valign': 'vcenter'})
         
-        # Escrevendo o cabeçalho com formatação customizada
+        # Escrevendo os cabeçalhos com formatação especial:
+        # Colunas "MAX_PU" e "MIN_PU" usam seus formatos especiais,
+        # e "DIF", "% DIF" e "Resultado" usam o formato customizado (#632523)
         for col_num, header in enumerate(df.columns):
-            if header in ["DIF", "% DIF", "Resultado"]:
-                fmt = header_format_custom
-            elif header == "MAX_PU":
+            if header == "MAX_PU":
                 fmt = header_format_max
             elif header == "MIN_PU":
                 fmt = header_format_min
+            elif header in ["DIF", "% DIF", "Resultado"]:
+                fmt = header_format_custom
             else:
                 fmt = header_format_default
             worksheet.write(0, col_num, header, fmt)
@@ -195,7 +196,7 @@ def main():
             st.sidebar.error("Você não tem permissão para alterar")
         else:
             new_base_df.to_excel(CAMINHO_BASE, index=False)
-            load_base_planilha.clear()
+            load_base_planilha.clear()  # Limpa o cache para forçar recarregamento
             st.sidebar.success("✅ Planilha base atualizada com sucesso!")
     
     # Atualizar a planilha de exceção com verificação de código
@@ -261,7 +262,10 @@ def main():
             (df_agrupado['Qtd.total entrada'] != 0) & (df_agrupado['Valor/moeda objeto'] != 0)
         ]
         
-        # Atualiza a coluna "Resultado" com os novos critérios
+        # Nova lógica para a coluna Resultado:
+        # Se PU > MAX_PU: "⬆️ Acima do máximo"
+        # Se PU < MIN_PU: "⬇️ Abaixo do mínimo"
+        # Caso contrário: "✅ OK"
         df_agrupado['Resultado'] = df_agrupado.apply(
             lambda row: ("⬆️ Acima do máximo" if row['PU'] > row['MAX_PU'] 
                          else "⬇️ Abaixo do mínimo" if row['PU'] < row['MIN_PU'] 
@@ -270,20 +274,31 @@ def main():
         )
         
         # Criar a coluna "DIF":
+        # Se Resultado indicar "Abaixo do mínimo", DIF = MIN_PU - PU
+        # Se Resultado indicar "Acima do máximo", DIF = PU - MAX_PU
+        # Caso contrário, DIF fica vazia (None)
         df_agrupado["DIF"] = df_agrupado.apply(
-            lambda row: (row["MIN_PU"] - row["PU"]) if row["Resultado"] == "⬇️ Abaixo do mínimo" 
-                        else (row["PU"] - row["MAX_PU"]) if row["Resultado"] == "⬆️ Acima do máximo" 
-                        else None, axis=1
-        )
-        # Criar a coluna "% DIF":
-        df_agrupado["% DIF"] = df_agrupado.apply(
-            lambda row: (row["DIF"] / row["MIN_PU"]) if row["Resultado"] == "⬇️ Abaixo do mínimo" 
-                        else (row["DIF"] / row["MAX_PU"]) if row["Resultado"] == "⬆️ Acima do máximo" 
-                        else None, axis=1
+            lambda row: row["MIN_PU"] - row["PU"] if "Abaixo do mínimo" in row["Resultado"]
+            else row["PU"] - row["MAX_PU"] if "Acima do máximo" in row["Resultado"]
+            else None, axis=1
         )
         
-        # Reordene as colunas conforme a ordem final desejada
-        df_agrupado = df_agrupado[FINAL_COLUMNS]
+        # Criar a coluna "% DIF":
+        # Se Resultado indicar "Abaixo do mínimo", % DIF = DIF / MIN_PU
+        # Se indicar "Acima do máximo", % DIF = DIF / MAX_PU
+        # Caso contrário, vazio
+        df_agrupado["% DIF"] = df_agrupado.apply(
+            lambda row: row["DIF"] / row["MIN_PU"] if "Abaixo do mínimo" in row["Resultado"]
+            else row["DIF"] / row["MAX_PU"] if "Acima do máximo" in row["Resultado"]
+            else None, axis=1
+        )
+        
+        # Reordenar as colunas conforme a nova ordem desejada
+        final_columns = [
+            "Empresa", "Elemento PEP", "Material", "DESC_MATERIAL", "Qtd.total entrada",
+            "Valor/moeda objeto", "PU", "MAX_PU", "MIN_PU", "DIF", "% DIF", "Resultado"
+        ]
+        df_agrupado = df_agrupado[final_columns]
         
         processed_df = df_agrupado.copy()
         processed_file = gerar_arquivo_excel(processed_df)
@@ -299,4 +314,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
