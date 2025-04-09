@@ -46,7 +46,7 @@ if st.session_state.show_info:
             "localizada na última linha do arquivo extraído da CJI3."
         )
 
-# Caminho das planilhas base e exceção (definidos manualmente no código)
+# Caminhos das planilhas base e exceção (definidos manualmente no código)
 CAMINHO_BASE = "planilha_base.xlsx"
 CAMINHO_EXCECAO = "planilha__Excecao.xlsx"
 
@@ -65,13 +65,13 @@ COLUNAS_ESPERADAS_COMPARACAO = [
     "Nº ref.estorno", "Operação ref."
 ]
 
-# A ordem final das colunas processadas, agora incluindo a nova coluna "DIF"
+# Ordem final das colunas processadas original (antes das novas colunas)
 FINAL_COLUMNS = [
     "Empresa", "Elemento PEP", "Material", "DESC_MATERIAL", "Qtd.total entrada",
-    "Valor/moeda objeto", "PU", "MAX_PU", "MIN_PU", "DIF", "Resultado"
+    "Valor/moeda objeto", "PU", "MAX_PU", "MIN_PU", "Resultado"
 ]
 
-@st.cache_data
+# Função para carregar a planilha base (sempre ler do disco)
 def load_base_planilha():
     try:
         df = pd.read_excel(CAMINHO_BASE)
@@ -80,7 +80,7 @@ def load_base_planilha():
         st.error(f"Erro ao tentar carregar a planilha base: {e}")
         return None
 
-@st.cache_data
+# Função para carregar a planilha de exceção (sempre ler do disco)
 def load_excecao_planilha():
     try:
         return pd.read_excel(CAMINHO_EXCECAO)
@@ -143,18 +143,10 @@ def gerar_arquivo_excel(df):
         
         cell_format = workbook.add_format({"align": "center", "valign": "vcenter"})
         
-        # Formato numérico com separador de milhar
-        thousand_format = workbook.add_format({
-            "align": "center",
-            "valign": "vcenter",
-            "num_format": "#,##0.00"
-        })
-        
-        # Escrevendo os cabeçalhos com formatação:
+        # Escrevendo os cabeçalhos com formatação especial:
         # "MAX_PU" -> header_format_max, "MIN_PU" -> header_format_min,
-        # "DIF" e "Resultado" -> header_format_custom;
-        # os demais utilizam header_format_default.
-        # Se a coluna for "% DIF", também usará header_format_custom.
+        # "Resultado" -> header_format_custom; os demais utilizam header_format_default.
+        # Se a coluna for "% DIF" também usa header_format_custom.
         for col_num, header in enumerate(df.columns):
             if header == "MAX_PU":
                 fmt = header_format_max
@@ -166,14 +158,17 @@ def gerar_arquivo_excel(df):
                 fmt = header_format_default
             worksheet.write(0, col_num, header, fmt)
         
-        # Lista de colunas que devem ter formatação numérica
+        # Lista das colunas numéricas que devem ter separador de milhar
         numeric_columns = ["Valor/moeda objeto", "PU", "MAX_PU", "MIN_PU", "DIF"]
         
-        # Escrevendo os dados
         for row_num in range(1, len(df) + 1):
             for col_num, value in enumerate(df.iloc[row_num - 1]):
                 col_name = df.columns[col_num]
-                fmt = thousand_format if col_name in numeric_columns else cell_format
+                fmt = workbook.add_format({
+                    "align": "center",
+                    "valign": "vcenter",
+                    "num_format": "#,##0.00"
+                }) if col_name in numeric_columns else cell_format
                 safe_write(worksheet, row_num, col_num, value, fmt)
         writer.close()
     return output.getvalue()
@@ -211,7 +206,6 @@ def main():
             st.sidebar.error("Você não tem permissão para alterar")
         else:
             new_base_df.to_excel(CAMINHO_BASE, index=False)
-            load_base_planilha.clear()  # Limpa o cache para forçar recarregamento
             st.sidebar.success("✅ Planilha base atualizada com sucesso!")
     
     # Atualizar a planilha de exceção com verificação de código
@@ -224,7 +218,6 @@ def main():
             st.sidebar.error("Você não tem permissão para alterar")
         else:
             new_excecao_df.to_excel(CAMINHO_EXCECAO, index=False)
-            load_excecao_planilha.clear()
             st.sidebar.success("✅ Planilha de exceção atualizada com sucesso!")
     
     base_df = load_base_planilha()
@@ -277,13 +270,13 @@ def main():
             (df_agrupado["Qtd.total entrada"] != 0) & (df_agrupado["Valor/moeda objeto"] != 0)
         ]
         
-        # Nova lógica para a coluna Resultado:
+        # Lógica para a coluna Resultado:
         # Se PU > MAX_PU: "⬆️ Acima do máximo"
         # Se PU < MIN_PU: "⬇️ Abaixo do mínimo"
         # Caso contrário: "✅ OK"
         df_agrupado["Resultado"] = df_agrupado.apply(
-            lambda row: ("⬆️ Acima do máximo" if row["PU"] > row["MAX_PU"]
-                         else "⬇️ Abaixo do mínimo" if row["PU"] < row["MIN_PU"]
+            lambda row: ("⬆️ Acima do máximo" if row["PU"] > row["MAX_PU"] 
+                         else "⬇️ Abaixo do mínimo" if row["PU"] < row["MIN_PU"] 
                          else "✅ OK") if pd.notnull(row["MIN_PU"]) and pd.notnull(row["MAX_PU"])
             else "⚠️ Equipamento não encontrado", axis=1
         )
@@ -299,8 +292,8 @@ def main():
         )
         
         # Criação da coluna "% DIF":
-        # Se PU > MAX_PU, % DIF = (DIF / MAX_PU)*100 com formato porcentagem
-        # Se PU < MIN_PU, % DIF = (DIF / MIN_PU)*100 com formato porcentagem
+        # Se PU > MAX_PU, % DIF = (DIF / MAX_PU)*100 com símbolo de porcentagem
+        # Se PU < MIN_PU, % DIF = (DIF / MIN_PU)*100 com símbolo de porcentagem
         df_agrupado["% DIF"] = df_agrupado.apply(
             lambda row: f"{(row['DIF'] / row['MAX_PU'] * 100):.2f}%" if pd.notnull(row["MAX_PU"]) and row["PU"] > row["MAX_PU"]
             else f"{(row['DIF'] / row['MIN_PU'] * 100):.2f}%" if pd.notnull(row["MIN_PU"]) and row["PU"] < row["MIN_PU"]
@@ -328,3 +321,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
