@@ -46,7 +46,7 @@ if st.session_state.show_info:
             "localizada na última linha do arquivo extraído da CJI3."
         )
 
-# Caminhos dos arquivos
+# Caminhos das planilhas base e exceção (definidos manualmente no código)
 CAMINHO_BASE = "planilha_base.xlsx"
 CAMINHO_EXCECAO = "planilha__Excecao.xlsx"
 
@@ -71,7 +71,7 @@ FINAL_COLUMNS = [
     "Valor/moeda objeto", "PU", "MAX_PU", "MIN_PU", "DIF", "% DIF", "Resultado"
 ]
 
-# Remova os decorators de cache para garantir leitura sempre atualizada
+# Função para carregar a planilha base (sempre lendo do disco)
 def load_base_planilha():
     try:
         df = pd.read_excel(CAMINHO_BASE)
@@ -80,6 +80,7 @@ def load_base_planilha():
         st.error(f"Erro ao tentar carregar a planilha base: {e}")
         return None
 
+# Função para carregar a planilha de exceção (sempre lendo do disco)
 def load_excecao_planilha():
     try:
         return pd.read_excel(CAMINHO_EXCECAO)
@@ -148,8 +149,8 @@ def gerar_arquivo_excel(df):
             "num_format": "#,##0.00"
         })
         
-        # Escrevendo os cabeçalhos com formatação:
-        # "MAX_PU" -> header_format_max, "MIN_PU" -> header_format_min,
+        # Escrevendo os cabeçalhos com formatação customizada:
+        # "MAX_PU" -> header_format_max; "MIN_PU" -> header_format_min;
         # "DIF", "% DIF" e "Resultado" -> header_format_custom; os demais -> header_format_default.
         for col_num, header in enumerate(df.columns):
             if header == "MAX_PU":
@@ -291,12 +292,12 @@ def main():
             else None, axis=1
         )
         
-        # Criação da coluna "% DIF":
-        # Se PU > MAX_PU -> % DIF = (DIF / MAX_PU)*100, formata com símbolo de porcentagem
-        # Se PU < MIN_PU -> % DIF = (DIF / MIN_PU)*100, formata com símbolo de porcentagem
+        # Atualize o cálculo da coluna "% DIF":
+        # Se PU > MAX_PU -> % DIF = (DIF / PU) * 100
+        # Se PU < MIN_PU -> % DIF = (DIF / MIN_PU) * 100
         df_agrupado["% DIF"] = df_agrupado.apply(
-            lambda row: f"{(row['DIF'] / row['MAX_PU'] * 100):.2f}%" if pd.notnull(row["MAX_PU"]) and row["PU"] > row["MAX_PU"]
-            else f"{(row['DIF'] / row['MIN_PU'] * 100):.2f}%" if pd.notnull(row["MIN_PU"]) and row["PU"] < row["MIN_PU"]
+            lambda row: f"{(row['DIF'] / row['PU'] * 100):.2f}%" if pd.notnull(row["DIF"]) and row["PU"] > row["MAX_PU"] and row["PU"] != 0
+            else f"{(row['DIF'] / row['MIN_PU'] * 100):.2f}%" if pd.notnull(row["DIF"]) and row["PU"] < row["MIN_PU"] and row["MIN_PU"] != 0
             else None, axis=1
         )
         
@@ -318,9 +319,10 @@ def main():
             file_name="planilha_processada.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-
+        
 if __name__ == '__main__':
     main()
+
 
 
 
