@@ -218,7 +218,9 @@ def main():
             st.sidebar.error("Você não tem permissão para alterar")
         else:
             new_excecao_df.to_excel(CAMINHO_EXCECAO, index=False)
+            load_excecao_planilha.clear()  # Limpa o cache para forçar recarregamento
             st.sidebar.success("✅ Planilha de exceção atualizada com sucesso!")
+
     
     base_df = load_base_planilha()
     if base_df is None:
