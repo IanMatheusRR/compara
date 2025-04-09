@@ -292,10 +292,10 @@ def main():
         )
         
         # Criação da coluna "% DIF":
-        # Se PU > MAX_PU -> % DIF = (DIF / MAX_PU)*100, formata com símbolo de porcentagem
+        # Se PU > MAX_PU -> % DIF = (DIF / PU)*100, formata com símbolo de porcentagem
         # Se PU < MIN_PU -> % DIF = (DIF / MIN_PU)*100, formata com símbolo de porcentagem
         df_agrupado["% DIF"] = df_agrupado.apply(
-            lambda row: f"{(row['DIF'] / row['MAX_PU'] * 100):.2f}%" if pd.notnull(row["MAX_PU"]) and row["PU"] > row["MAX_PU"]
+            lambda row: f"{(row['DIF'] / row['PU'] * 100):.2f}%" if pd.notnull(row["MAX_PU"]) and row["PU"] > row["MAX_PU"]
             else f"{(row['DIF'] / row['MIN_PU'] * 100):.2f}%" if pd.notnull(row["MIN_PU"]) and row["PU"] < row["MIN_PU"]
             else None, axis=1
         )
